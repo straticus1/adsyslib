@@ -1,0 +1,8 @@
+FROM redhat/ubi9
+RUN dnf install -y python3 python3-pip && dnf clean all
+WORKDIR /app
+COPY pyproject.toml ./
+COPY src ./src
+RUN pip3 install --no-cache-dir .
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["adsys"]

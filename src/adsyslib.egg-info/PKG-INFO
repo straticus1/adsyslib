@@ -1,0 +1,51 @@
+Metadata-Version: 2.4
+Name: adsyslib
+Version: 0.1.0
+Summary: A powerful system administration library for Python
+Author-email: Ryan <ryan@example.com>
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: boto3>=1.34.0
+Requires-Dist: oci>=2.119.0
+Requires-Dist: docker>=7.0.0
+Requires-Dist: pexpect>=4.9.0
+Requires-Dist: sh>=2.0.0
+Requires-Dist: requests>=2.31.0
+Requires-Dist: rich>=13.7.0
+Requires-Dist: typer>=0.9.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: isort; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+
+# adsyslib
+
+A "10x better" systems library for Python, designed for robust system administration, cloud management, and automation.
+
+## Features
+
+- **Core Shell**: Robust command execution with output capturing and audit logging.
+- **Package Management**: Unified interface for `apt` and `dnf` with idempotency.
+- **Container Management**: High-level Docker wrapper.
+- **Interactive Automation**: Smart wrappers around `pexpect`.
+- **Cloud Integration**: Unified basic operations for AWS and Oracle Cloud.
+
+## Installation
+
+```bash
+pip install .
+```
+
+## Basic Usage
+
+```python
+from adsyslib.core import run
+
+# Run a command safely
+result = run("ls -la", check=True)
+print(result.stdout)
+```

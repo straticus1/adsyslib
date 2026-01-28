@@ -1,0 +1,11 @@
+FROM ubuntu:22.04
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    python3 python3-pip curl vim docker.io && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY pyproject.toml ./
+COPY src ./src
+RUN pip3 install --no-cache-dir .
+RUN pip3 install --no-cache-dir pytest black isort mypy
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["adsys"]

@@ -1,0 +1,8 @@
+FROM alpine:3.19
+RUN apk add --no-cache python3 py3-pip curl jq
+WORKDIR /app
+COPY pyproject.toml ./
+COPY src ./src
+RUN pip3 install --no-cache-dir --break-system-packages .
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["adsys"]
