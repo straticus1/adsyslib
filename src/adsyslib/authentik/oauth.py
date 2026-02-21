@@ -50,12 +50,14 @@ class AuthentikOAuthManager:
         print(f"Client Secret: {result['client_secret']}")
     """
 
-    def __init__(self, container_name: str = "authentik-server-prod"):
+    def __init__(self, container_name: str = "authentik-server"):
         """
         Initialize OAuth manager.
 
         Args:
-            container_name: Docker container running Authentik
+            container_name: Docker container or Kubernetes pod prefix running Authentik
+                          - For Docker: use full container name (e.g., "authentik-server-prod")
+                          - For Kubernetes: use "authentik-server" to auto-detect pod
         """
         self.container_name = container_name
 
@@ -71,9 +73,25 @@ class AuthentikOAuthManager:
         """
         from adsyslib.core import run
 
-        # Pipe script to docker exec
+        # Auto-detect if we should use kubectl or docker
+        # If container_name looks like a pod, use kubectl
+        if self.container_name.startswith("authentik-server"):
+            # Get the current pod name dynamically
+            pod_result = run(
+                "kubectl get pods -n authentik -l app=authentik-server -o jsonpath='{.items[0].metadata.name}'",
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            pod_name = pod_result.stdout.strip().strip("'")
+            cmd = f"kubectl exec -i -n authentik {pod_name} -- python3"
+        else:
+            # Use docker exec
+            cmd = f"docker exec -i {self.container_name} python3"
+
+        # Pipe script to exec command
         result = run(
-            f"docker exec -i {self.container_name} python3",
+            cmd,
             input=script,
             check=True,
             capture_output=True,
@@ -112,7 +130,8 @@ except OAuth2Provider.DoesNotExist:
     pass
 
 # Create provider
-redirect_uris_data = {json.dumps([{{"matching_mode": "strict", "url": uri}} for uri in config.redirect_uris])}
+redirect_uris = {json.dumps(config.redirect_uris)}
+redirect_uris_data = json.dumps([{{"matching_mode": "strict", "url": uri}} for uri in redirect_uris])
 
 provider = OAuth2Provider.objects.create(
     name="{config.app_name} Provider",

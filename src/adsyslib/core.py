@@ -38,7 +38,10 @@ def run(
     check: bool = False,
     timeout: Optional[float] = None,
     shell: bool = False,
-    log_output: bool = True
+    log_output: bool = True,
+    input: Optional[str] = None,
+    capture_output: bool = True,
+    text: bool = True
 ) -> CommandResult:
     """
     Run a shell command safely with logging and better typing.
@@ -51,6 +54,9 @@ def run(
         timeout: Timeout in seconds.
         shell: If True, run through the shell (use carefully).
         log_output: If True, log the stdout/stderr to debug log.
+        input: Optional input to pipe to the command's stdin.
+        capture_output: Capture stdout/stderr (default True).
+        text: Text mode for input/output (default True).
     """
     if isinstance(cmd, list):
         cmd_str = " ".join(shlex.quote(s) for s in cmd)
@@ -75,10 +81,11 @@ def run(
             args,
             cwd=cwd,
             env=run_env,
-            capture_output=True,
-            text=True,
+            capture_output=capture_output,
+            text=text,
             shell=shell,
-            timeout=timeout
+            timeout=timeout,
+            input=input
         )
         duration = time.time() - start_time
         

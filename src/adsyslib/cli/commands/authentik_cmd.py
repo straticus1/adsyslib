@@ -179,7 +179,7 @@ def oauth_create(
     launch_url: str = typer.Option(..., "--launch-url", help="Application launch URL"),
     app_slug: str = typer.Option(None, "--slug", help="Application slug (defaults to lowercase app_name)"),
     client_type: str = typer.Option("confidential", "--type", help="Client type: confidential or public"),
-    container: str = typer.Option("authentik-server-prod", "--container", help="Docker container name"),
+    container: str = typer.Option("authentik-server", "--container", help="Docker container name"),
     output_env: Optional[str] = typer.Option(None, "--output-env", help="Output .env file with credentials")
 ):
     """Create an OAuth2 provider via Django ORM."""
@@ -218,7 +218,7 @@ def oauth_create(
 @app.command("oauth-bulk-create")
 def oauth_bulk_create(
     config_file: str = typer.Argument(..., help="JSON config file with provider definitions"),
-    container: str = typer.Option("authentik-server-prod", "--container", help="Docker container name"),
+    container: str = typer.Option("authentik-server", "--container", help="Docker container name"),
     output_env: Optional[str] = typer.Option(".env", "--output-env", help="Output .env file"),
     output_json: Optional[str] = typer.Option(None, "--output-json", help="Output JSON file with all secrets")
 ):
@@ -281,7 +281,7 @@ def oauth_bulk_create(
 
 @app.command("oauth-list")
 def oauth_list(
-    container: str = typer.Option("authentik-server-prod", "--container", help="Docker container name")
+    container: str = typer.Option("authentik-server", "--container", help="Docker container name")
 ):
     """List all OAuth2 providers."""
     manager = AuthentikOAuthManager(container_name=container)
@@ -314,7 +314,7 @@ def oauth_list(
 @app.command("oauth-get")
 def oauth_get(
     client_id: str = typer.Argument(..., help="OAuth client ID"),
-    container: str = typer.Option("authentik-server-prod", "--container", help="Docker container name"),
+    container: str = typer.Option("authentik-server", "--container", help="Docker container name"),
     show_secret: bool = typer.Option(False, "--show-secret", help="Show client secret")
 ):
     """Get details of an OAuth provider."""
@@ -342,7 +342,7 @@ def oauth_get(
 @app.command("oauth-delete")
 def oauth_delete(
     client_id: str = typer.Argument(..., help="OAuth client ID to delete"),
-    container: str = typer.Option("authentik-server-prod", "--container", help="Docker container name"),
+    container: str = typer.Option("authentik-server", "--container", help="Docker container name"),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation")
 ):
     """Delete an OAuth2 provider."""
