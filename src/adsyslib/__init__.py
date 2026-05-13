@@ -30,6 +30,9 @@ from adsyslib.interact import InteractiveSession
 # Compliance
 from adsyslib.compliance import build_package, compare_packages, load_package, AuditPackage, ControlResult, DriftReport
 
+# Host scanning
+from adsyslib.host import ssh_to_host, HostSession, HostReport
+
 __all__ = [
     # Core
     "run",
@@ -51,6 +54,10 @@ __all__ = [
     "AuditPackage",
     "ControlResult",
     "DriftReport",
+    # Host scanning
+    "ssh_to_host",
+    "HostSession",
+    "HostReport",
     # Version
     "__version__",
 ]

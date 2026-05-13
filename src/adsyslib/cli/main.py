@@ -3,7 +3,7 @@ import logging
 from rich.logging import RichHandler
 from typing import Optional
 from adsyslib.logger import configure_logging
-from adsyslib.cli.commands import run_cmd, pkg_cmd, container_cmd, cloud_cmd, iac_cmd, authentik_cmd, compliance_cmd
+from adsyslib.cli.commands import run_cmd, pkg_cmd, container_cmd, cloud_cmd, iac_cmd, authentik_cmd, compliance_cmd, host_cmd
 
 app = typer.Typer(
     name="adsys",
@@ -20,6 +20,7 @@ app.add_typer(cloud_cmd.app, name="cloud", help="Manage Cloud Resources (AWS/OCI
 app.add_typer(iac_cmd.app, name="iac", help="Infrastructure as Code (Terraform/Ansible)")
 app.add_typer(authentik_cmd.app, name="authentik", help="Manage Authentik Identity Provider")
 app.add_typer(compliance_cmd.app, name="compliance", help="Generate compliance audit packages")
+app.add_typer(host_cmd.app, name="host", help="SSH to hosts and scan services")
 
 @app.callback()
 def main(
