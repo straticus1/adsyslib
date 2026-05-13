@@ -1,2 +1,0 @@
-[console_scripts]
-adsys = adsyslib.cli.main:app
