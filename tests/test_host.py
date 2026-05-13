@@ -9,10 +9,15 @@ from typing import Dict, Optional
 from adsyslib.core import CommandResult
 from adsyslib.host.session import HostSession, HostReport
 from adsyslib.host.scanners import ScanResult
-from adsyslib.host.scanners.postfix import PostfixScanner
+from adsyslib.host.scanners.apache import ApacheScanner
 from adsyslib.host.scanners.dns import DnsScanner
 from adsyslib.host.scanners.dovecot import DovecotScanner
+from adsyslib.host.scanners.mysql import MysqlScanner
 from adsyslib.host.scanners.nginx import NginxScanner
+from adsyslib.host.scanners.postgres import PostgresScanner
+from adsyslib.host.scanners.postfix import PostfixScanner
+from adsyslib.host.scanners.redis import RedisScanner
+from adsyslib.host.scanners.spamassassin import SpamassassinScanner
 
 
 # ---------------------------------------------------------------------------
@@ -385,7 +390,7 @@ class TestHostSession:
         host = self._session()
         report = host.scan_all()
         assert isinstance(report, HostReport)
-        assert set(report.results.keys()) == {"postfix", "dns", "dovecot", "nginx"}
+        assert {"postfix", "dns", "dovecot", "nginx"}.issubset(report.results.keys())
 
     def test_scan_subset(self):
         host = self._session()
@@ -413,3 +418,345 @@ class TestHostSession:
         assert "host" in s
         assert "ok" in s
         assert "services" in s
+
+
+# ---------------------------------------------------------------------------
+# ApacheScanner
+# ---------------------------------------------------------------------------
+
+APACHE_V_OUTPUT = "Server version: Apache/2.4.54 (Ubuntu)"
+APACHE_CONFIG_DUMP_STRONG = """\
+SSLProtocol -all +TLSv1.2 +TLSv1.3
+SSLCipherSuite HIGH:!aNULL:!MD5
+add_header Strict-Transport-Security "max-age=31536000"
+"""
+APACHE_CONFIG_DUMP_WEAK = """\
+SSLProtocol all -SSLv2 SSLv3 TLSv1
+"""
+
+
+def _apache_shell(active=True, conf_dump=APACHE_CONFIG_DUMP_STRONG):
+    return FakeShell(commands={
+        "systemctl is-active apache2": "active" if active else "inactive",
+        "systemctl is-active httpd": "inactive",
+        "apache2 -v": APACHE_V_OUTPUT,
+        "apache2 -t": "Syntax OK",
+        "apache2 -M": "ssl_module (shared)\nrewrite_module (shared)\n",
+        "apache2 -S": "namevhost example.com (:443)\n",
+        "apachectl -D DUMP_CONFIG": conf_dump,
+    })
+
+
+class TestApacheScanner:
+    def test_active(self):
+        r = ApacheScanner(_apache_shell()).scan()
+        assert r.active is True
+
+    def test_inactive_flagged(self):
+        r = ApacheScanner(_apache_shell(active=False)).scan()
+        assert r.active is False
+        assert any("not running" in i for i in r.issues)
+
+    def test_ssl_module_detected(self):
+        r = ApacheScanner(_apache_shell()).scan()
+        assert r.config["ssl_module_loaded"] is True
+
+    def test_strong_tls_no_issues(self):
+        r = ApacheScanner(_apache_shell()).scan()
+        tls_issues = [i for i in r.issues if "protocol" in i.lower() or "cipher" in i.lower()]
+        assert tls_issues == []
+
+    def test_weak_protocol_flagged(self):
+        r = ApacheScanner(_apache_shell(conf_dump=APACHE_CONFIG_DUMP_WEAK)).scan()
+        assert any("SSLv3" in i or "TLSv1" in i for i in r.issues)
+
+    def test_hsts_missing_flagged(self):
+        r = ApacheScanner(_apache_shell(conf_dump=APACHE_CONFIG_DUMP_WEAK)).scan()
+        assert any("hsts" in i.lower() for i in r.issues)
+
+
+# ---------------------------------------------------------------------------
+# MysqlScanner
+# ---------------------------------------------------------------------------
+
+MYSQL_CNF_SECURE = """\
+[mysqld]
+bind-address = 127.0.0.1
+ssl_ca = /etc/mysql/ssl/ca.pem
+require_secure_transport = ON
+"""
+
+MYSQL_CNF_INSECURE = """\
+[mysqld]
+bind-address = 0.0.0.0
+local-infile = 1
+"""
+
+
+def _mysql_shell(active=True, cnf=MYSQL_CNF_SECURE):
+    return FakeShell(commands={
+        "systemctl is-active mysql": "active" if active else "inactive",
+        "systemctl is-active mariadb": "inactive",
+        "systemctl is-active mysqld": "inactive",
+        "mysql --version": "mysql  Ver 8.0.32",
+        "cat /etc/mysql/my.cnf": cnf,
+    })
+
+
+class TestMysqlScanner:
+    def test_active(self):
+        r = MysqlScanner(_mysql_shell()).scan()
+        assert r.active is True
+
+    def test_inactive_flagged(self):
+        r = MysqlScanner(_mysql_shell(active=False)).scan()
+        assert any("not running" in i for i in r.issues)
+
+    def test_secure_config_no_issues(self):
+        r = MysqlScanner(_mysql_shell()).scan()
+        assert r.issues == []
+
+    def test_bind_all_interfaces_flagged(self):
+        r = MysqlScanner(_mysql_shell(cnf=MYSQL_CNF_INSECURE)).scan()
+        assert any("all interfaces" in i for i in r.issues)
+
+    def test_local_infile_flagged(self):
+        r = MysqlScanner(_mysql_shell(cnf=MYSQL_CNF_INSECURE)).scan()
+        assert any("local_infile" in i for i in r.issues)
+
+    def test_no_tls_flagged(self):
+        r = MysqlScanner(_mysql_shell(cnf=MYSQL_CNF_INSECURE)).scan()
+        assert any("tls" in i.lower() or "ssl" in i.lower() for i in r.issues)
+
+
+# ---------------------------------------------------------------------------
+# PostgresScanner
+# ---------------------------------------------------------------------------
+
+PG_CONF_SSL_ON = """\
+ssl = on
+ssl_cert_file = '/etc/ssl/certs/postgres.crt'
+"""
+
+PG_HBA_SECURE = """\
+# TYPE  DATABASE  USER  ADDRESS  METHOD
+local   all       all            peer
+host    all       all   127.0.0.1/32  md5
+host    all       all   ::1/128       md5
+"""
+
+PG_HBA_INSECURE = """\
+host    all       all   0.0.0.0/0    trust
+"""
+
+
+def _pg_shell(active=True, pg_conf=PG_CONF_SSL_ON, hba=PG_HBA_SECURE):
+    return FakeShell(commands={
+        "systemctl is-active postgresql": "active" if active else "inactive",
+        "systemctl is-active postgres": "inactive",
+        "psql --version": "psql (PostgreSQL) 15.2",
+        "cat /etc/postgresql/postgresql.conf": pg_conf,
+        "cat /etc/postgresql/pg_hba.conf": hba,
+    })
+
+
+class TestPostgresScanner:
+    def test_active(self):
+        r = PostgresScanner(_pg_shell()).scan()
+        assert r.active is True
+
+    def test_ssl_enabled(self):
+        r = PostgresScanner(_pg_shell()).scan()
+        assert r.config["ssl"]["ssl_enabled"] is True
+
+    def test_ssl_disabled_flagged(self):
+        r = PostgresScanner(_pg_shell(pg_conf="ssl = off")).scan()
+        assert any("ssl" in i.lower() for i in r.issues)
+
+    def test_secure_hba_no_auth_issues(self):
+        r = PostgresScanner(_pg_shell()).scan()
+        auth_issues = [i for i in r.issues if "pg_hba" in i.lower()]
+        assert auth_issues == []
+
+    def test_trust_auth_flagged(self):
+        r = PostgresScanner(_pg_shell(hba=PG_HBA_INSECURE)).scan()
+        assert any("trust" in i.lower() for i in r.issues)
+
+    def test_hba_entries_parsed(self):
+        r = PostgresScanner(_pg_shell()).scan()
+        assert r.metrics["hba_entries"] == 3
+
+
+# ---------------------------------------------------------------------------
+# RedisScanner
+# ---------------------------------------------------------------------------
+
+REDIS_CONF_SECURE = """\
+bind 127.0.0.1
+requirepass s3cr3tpassword
+protected-mode yes
+tls-port 6380
+tls-cert-file /etc/redis/tls/redis.crt
+"""
+
+REDIS_CONF_INSECURE = """\
+bind 0.0.0.0
+protected-mode no
+"""
+
+
+def _redis_shell(active=True, conf=REDIS_CONF_SECURE, ping_ok=True):
+    cmds = {
+        "systemctl is-active redis": "active" if active else "inactive",
+        "systemctl is-active redis-server": "inactive",
+        "redis-server --version": "Redis server v=7.0.8",
+        "cat /etc/redis/redis.conf": conf,
+    }
+    if ping_ok:
+        cmds["redis-cli ping"] = "PONG"
+    return FakeShell(commands=cmds)
+
+
+class TestRedisScanner:
+    def test_active(self):
+        r = RedisScanner(_redis_shell()).scan()
+        assert r.active is True
+
+    def test_secure_config_no_issues(self):
+        r = RedisScanner(_redis_shell()).scan()
+        assert r.issues == []
+
+    def test_ping_ok(self):
+        r = RedisScanner(_redis_shell()).scan()
+        assert r.metrics["ping_ok"] is True
+
+    def test_inactive_flagged(self):
+        r = RedisScanner(_redis_shell(active=False)).scan()
+        assert any("not running" in i for i in r.issues)
+
+    def test_bind_all_interfaces_flagged(self):
+        r = RedisScanner(_redis_shell(conf=REDIS_CONF_INSECURE)).scan()
+        assert any("all interfaces" in i for i in r.issues)
+
+    def test_no_requirepass_flagged(self):
+        r = RedisScanner(_redis_shell(conf=REDIS_CONF_INSECURE)).scan()
+        assert any("requirepass" in i for i in r.issues)
+
+    def test_protected_mode_off_flagged(self):
+        r = RedisScanner(_redis_shell(conf=REDIS_CONF_INSECURE)).scan()
+        assert any("protected-mode" in i for i in r.issues)
+
+
+# ---------------------------------------------------------------------------
+# SpamassassinScanner
+# ---------------------------------------------------------------------------
+
+def _spamassassin_shell(active=True, rule_age_fresh=True):
+    cmds = {
+        "systemctl is-active spamassassin": "active" if active else "inactive",
+        "systemctl is-active spamd": "inactive",
+        "spamassassin --version": "SpamAssassin version 3.4.6",
+        "sa-learn --dump magic": (
+            "0.000          0          3          0  bayes db version\n"
+            "0.000          0     200000          0  nspam\n"
+            "0.000          0     600000          0  nham\n"
+        ),
+    }
+    if rule_age_fresh:
+        cmds["find /var/lib/spamassassin -name *.cf -newer /etc/cron.daily/spamassassin"] = "/var/lib/spamassassin/3.004006/updates_spamassassin_org.cf"
+    return FakeShell(commands=cmds)
+
+
+class TestSpamassassinScanner:
+    def test_active(self):
+        r = SpamassassinScanner(_spamassassin_shell()).scan()
+        assert r.active is True
+
+    def test_inactive_flagged(self):
+        r = SpamassassinScanner(_spamassassin_shell(active=False)).scan()
+        assert any("not running" in i for i in r.issues)
+
+    def test_fresh_rules_no_age_issue(self):
+        r = SpamassassinScanner(_spamassassin_shell()).scan()
+        age_issues = [i for i in r.issues if "stale" in i.lower() or "age" in i.lower()]
+        assert age_issues == []
+
+    def test_bayes_available(self):
+        r = SpamassassinScanner(_spamassassin_shell()).scan()
+        assert r.config["bayes"].get("available") is True
+
+
+# ---------------------------------------------------------------------------
+# host_controls integration
+# ---------------------------------------------------------------------------
+
+class TestHostControls:
+    def _report(self, results):
+        """Build a HostReport from {svc: [issue_str, ...]}."""
+        scan_results = {}
+        for svc, issues in results.items():
+            scan_results[svc] = ScanResult(
+                service=svc,
+                active=not any("not running" in i for i in issues),
+                issues=issues,
+            )
+        report = HostReport.__new__(HostReport)
+        report.host = "web-01.corp.com"
+        report.results = scan_results
+        return report
+
+    def test_nginx_tls_issue_maps_to_sc8(self):
+        from adsyslib.compliance.builder import host_controls
+        report = self._report({"nginx": ["weak SSL/TLS protocol in use: SSLv3"]})
+        controls = host_controls(report)
+        ids = {c.id for c in controls}
+        assert "SC-8" in ids
+
+    def test_service_not_running_maps_to_si2(self):
+        from adsyslib.compliance.builder import host_controls
+        report = self._report({"nginx": ["nginx is not running"]})
+        controls = host_controls(report)
+        ids = {c.id for c in controls}
+        assert "SI-2" in ids
+
+    def test_redis_no_auth_maps_to_ac17(self):
+        from adsyslib.compliance.builder import host_controls
+        report = self._report({"redis": ["redis has no requirepass set — unauthenticated access possible"]})
+        controls = host_controls(report)
+        ids = {c.id for c in controls}
+        assert "AC-17" in ids
+
+    def test_no_issues_no_controls(self):
+        from adsyslib.compliance.builder import host_controls
+        report = self._report({"nginx": []})
+        assert host_controls(report) == []
+
+    def test_evidence_includes_host_and_service(self):
+        from adsyslib.compliance.builder import host_controls
+        report = self._report({"nginx": ["weak SSL/TLS protocol in use: TLSv1"]})
+        controls = host_controls(report)
+        sc8 = next(c for c in controls if c.id == "SC-8")
+        assert "web-01.corp.com" in sc8.evidence
+        assert "nginx" in sc8.evidence
+
+    def test_merge_overrides_passing_control(self):
+        from adsyslib.compliance import AuditPackage, ControlResult
+        from adsyslib.compliance.builder import merge_host_findings
+        pkg = AuditPackage(
+            frameworks=["fedramp"],
+            controls=[ControlResult(id="SC-8", title="Transmission Protection", status="pass", framework="nist-800-53")],
+        )
+        report = self._report({"nginx": ["weak SSL/TLS protocol in use: SSLv3"]})
+        merge_host_findings(pkg, report)
+        sc8 = next(c for c in pkg.controls if c.id == "SC-8")
+        assert sc8.status == "fail"
+        assert "HOST_SCAN" in sc8.evidence
+
+    def test_merge_appends_new_control(self):
+        from adsyslib.compliance import AuditPackage, ControlResult
+        from adsyslib.compliance.builder import merge_host_findings
+        pkg = AuditPackage(frameworks=["fedramp"], controls=[])
+        report = self._report({"nginx": ["nginx is not running"]})
+        merge_host_findings(pkg, report)
+        ids = {c.id for c in pkg.controls}
+        assert "SI-2" in ids

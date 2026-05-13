@@ -268,6 +268,104 @@ def _patching_controls(data: Dict[str, Any]) -> List[ControlResult]:
 
 
 # ---------------------------------------------------------------------------
+# Host scan → compliance control mapping
+# ---------------------------------------------------------------------------
+
+# Maps scanner name + issue keyword → affected NIST control IDs
+_HOST_ISSUE_CONTROLS = {
+    # TLS / transmission protection → SC-8
+    "sc-8": {
+        "services": {"nginx", "apache", "postfix", "dovecot"},
+        "keywords": {"tls", "ssl", "hsts", "cipher", "protocol", "smtpd_tls", "smtp_tls"},
+    },
+    # Availability / service continuity → CP-2 / SI-2
+    "si-2": {
+        "services": {"nginx", "apache", "postfix", "dns", "dovecot", "mysql", "postgresql", "redis"},
+        "keywords": {"not running", "inactive", "scanner error"},
+    },
+    # Data-at-rest / database security → SC-28
+    "sc-28": {
+        "services": {"mysql", "postgresql", "redis"},
+        "keywords": {"ssl not", "tls not", "ssl is not", "unencrypted", "plaintext", "requirepass"},
+    },
+    # Access control / authentication → AC-17
+    "ac-17": {
+        "services": {"redis", "mysql", "postgresql"},
+        "keywords": {"unauthenticated", "no requirepass", "trust", "bind_address", "all interfaces"},
+    },
+}
+
+
+def host_controls(host_report: Any) -> List[ControlResult]:
+    """
+    Map a HostReport's service issues to NIST 800-53 controls.
+
+    Each issue that matches a known keyword pattern produces a ControlResult
+    that can be merged into an AuditPackage.  Only generates results for
+    controls that have evidence — controls with no matching issues are omitted
+    (they do not override the compliance collector's own evaluations).
+
+    Args:
+        host_report: A HostReport from adsyslib.host (or any object with
+                     .host and .results attributes).
+
+    Returns:
+        List of ControlResult entries derived from host scan findings.
+    """
+    # Collect all issues per scanner
+    all_issues: dict = {}  # control_id → list of evidence strings
+    for svc_name, scan_result in host_report.results.items():
+        for issue in scan_result.issues:
+            issue_lower = issue.lower()
+            for ctrl_id, mapping in _HOST_ISSUE_CONTROLS.items():
+                if svc_name not in mapping["services"]:
+                    continue
+                if any(kw in issue_lower for kw in mapping["keywords"]):
+                    all_issues.setdefault(ctrl_id.upper(), []).append(
+                        f"{svc_name}: {issue}"
+                    )
+
+    results = []
+    for ctrl_id, evidence_list in sorted(all_issues.items()):
+        results.append(ControlResult(
+            id=ctrl_id,
+            title=control_title(ctrl_id),
+            status="fail",
+            evidence=f"host={host_report.host}; " + "; ".join(evidence_list),
+            framework="nist-800-53",
+        ))
+    return results
+
+
+def merge_host_findings(package: "AuditPackage", host_report: Any) -> "AuditPackage":
+    """
+    Merge HostReport findings into an existing AuditPackage.
+
+    For each control derived from the host scan:
+    - If the control is already in the package and passes, override it to fail.
+    - If the control is not present, append it.
+
+    Returns the same AuditPackage (mutated in place).
+    """
+    new_controls = host_controls(host_report)
+    existing = {c.id: c for c in package.controls}
+
+    for ctrl in new_controls:
+        if ctrl.id in existing:
+            existing_ctrl = existing[ctrl.id]
+            if existing_ctrl.status == "pass":
+                # Override: host scan found a real issue
+                existing_ctrl.status = "fail"
+                existing_ctrl.evidence = (
+                    existing_ctrl.evidence + " | HOST_SCAN: " + ctrl.evidence
+                )
+        else:
+            package.controls.append(ctrl)
+
+    return package
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 

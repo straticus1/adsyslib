@@ -134,9 +134,9 @@ class Shell:
         self.cwd = cwd or os.getcwd()
         self.env = env or os.environ.copy()
 
-    def run(self, cmd: Union[str, List[str]], check: bool = False, timeout: Optional[float] = None) -> CommandResult:
+    def run(self, cmd: Union[str, List[str]], check: bool = False, timeout: Optional[float] = None, shell: bool = False) -> CommandResult:
         """Run a command within the context of this shell (cwd/env)."""
-        return run(cmd, cwd=self.cwd, env=self.env, check=check, timeout=timeout)
+        return run(cmd, cwd=self.cwd, env=self.env, check=check, timeout=timeout, shell=shell)
 
     def cd(self, path: str):
         """Change current working directory of the shell wrapper."""

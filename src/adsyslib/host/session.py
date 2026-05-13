@@ -28,16 +28,25 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from adsyslib.remote import RemoteShell
-from .scanners import DnsScanner, DovecotScanner, NginxScanner, PostfixScanner, ScanResult
+from .scanners import (
+    ApacheScanner, DnsScanner, DovecotScanner, MysqlScanner,
+    NginxScanner, PostgresScanner, PostfixScanner, RedisScanner,
+    ScanResult, SpamassassinScanner,
+)
 
 logger = logging.getLogger(__name__)
 
 # Registry: name → scanner class. Add new scanners here.
 _SCANNER_REGISTRY = {
-    "postfix": PostfixScanner,
-    "dns":     DnsScanner,
-    "dovecot": DovecotScanner,
-    "nginx":   NginxScanner,
+    "apache":        ApacheScanner,
+    "dns":           DnsScanner,
+    "dovecot":       DovecotScanner,
+    "mysql":         MysqlScanner,
+    "nginx":         NginxScanner,
+    "postgresql":    PostgresScanner,
+    "postfix":       PostfixScanner,
+    "redis":         RedisScanner,
+    "spamassassin":  SpamassassinScanner,
 }
 
 
@@ -118,8 +127,8 @@ class HostSession:
         return self._scanners[name]
 
     @property
-    def postfix(self) -> PostfixScanner:
-        return self._scanner("postfix")
+    def apache(self) -> ApacheScanner:
+        return self._scanner("apache")
 
     @property
     def dns(self) -> DnsScanner:
@@ -130,8 +139,28 @@ class HostSession:
         return self._scanner("dovecot")
 
     @property
+    def mysql(self) -> MysqlScanner:
+        return self._scanner("mysql")
+
+    @property
     def nginx(self) -> NginxScanner:
         return self._scanner("nginx")
+
+    @property
+    def postgresql(self) -> PostgresScanner:
+        return self._scanner("postgresql")
+
+    @property
+    def postfix(self) -> PostfixScanner:
+        return self._scanner("postfix")
+
+    @property
+    def redis(self) -> RedisScanner:
+        return self._scanner("redis")
+
+    @property
+    def spamassassin(self) -> SpamassassinScanner:
+        return self._scanner("spamassassin")
 
     # ------------------------------------------------------------------
     # Scan all

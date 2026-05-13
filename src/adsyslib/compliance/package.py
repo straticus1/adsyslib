@@ -90,6 +90,55 @@ class AuditPackage:
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
 
+    def validate(self) -> List[str]:
+        """
+        Validate that this AuditPackage meets ERS ingest requirements.
+
+        Returns a list of validation error strings.  An empty list means the
+        package is valid and ready for ERS ingest.
+
+        ERS requires:
+        - package_id: non-empty UUID string
+        - generated_at: non-empty ISO-8601 timestamp
+        - hostname: non-empty string
+        - frameworks: at least one known framework
+        - controls: at least one ControlResult
+        - Each ControlResult must have: id, title, status in allowed values,
+          framework non-empty
+        """
+        errors = []
+        known_frameworks = {"fedramp", "hipaa", "sox", "glba"}
+        allowed_statuses = {"pass", "fail", "not_applicable", "error"}
+
+        if not self.package_id or not self.package_id.strip():
+            errors.append("package_id is empty")
+        if not self.generated_at or not self.generated_at.strip():
+            errors.append("generated_at is empty")
+        if not self.hostname or not self.hostname.strip():
+            errors.append("hostname is empty")
+        if not self.frameworks:
+            errors.append("frameworks list is empty")
+        else:
+            unknown = set(self.frameworks) - known_frameworks
+            if unknown:
+                errors.append(f"unknown framework(s): {sorted(unknown)}")
+        if not self.controls:
+            errors.append("controls list is empty — package has no evaluated controls")
+        for i, ctrl in enumerate(self.controls):
+            prefix = f"controls[{i}] (id={ctrl.id!r})"
+            if not ctrl.id or not ctrl.id.strip():
+                errors.append(f"{prefix}: id is empty")
+            if not ctrl.title or not ctrl.title.strip():
+                errors.append(f"{prefix}: title is empty")
+            if ctrl.status not in allowed_statuses:
+                errors.append(
+                    f"{prefix}: invalid status {ctrl.status!r} "
+                    f"(allowed: {sorted(allowed_statuses)})"
+                )
+            if not ctrl.framework or not ctrl.framework.strip():
+                errors.append(f"{prefix}: framework is empty")
+        return errors
+
     def summary(self) -> Dict[str, Any]:
         counts = {"pass": 0, "fail": 0, "not_applicable": 0, "error": 0}
         for c in self.controls:

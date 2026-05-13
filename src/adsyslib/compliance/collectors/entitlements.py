@@ -30,6 +30,110 @@ def _local_groups(ctx: CollectionContext) -> List[Dict[str, Any]]:
     return groups
 
 
+def _ad_entitlements(ctx: CollectionContext) -> Dict[str, Any]:
+    """
+    Collect Active Directory entitlement evidence via Linux AD integration tools.
+
+    Tries (in order): sssd/realm list → net ads → wbinfo (Samba/winbind).
+    All commands run through CollectionContext so they work over SSH.
+    """
+    result: Dict[str, Any] = {
+        "domain": None,
+        "joined": False,
+        "privileged_groups": [],
+        "domain_users_sample": [],
+        "tool_used": None,
+    }
+
+    # --- realm / sssd (modern: realmd + sssd) ---
+    r = ctx.run(["realm", "list"], check=False)
+    if r.ok() and r.stdout:
+        domain = None
+        for line in r.stdout.splitlines():
+            line = line.strip()
+            if not line.startswith("realm-name") and not line.startswith("domain-name") and "." in line and not line.startswith(" "):
+                domain = line.strip()
+            if line.startswith("domain-name:"):
+                domain = line.split(":", 1)[1].strip()
+        result["domain"] = domain
+        result["joined"] = domain is not None
+        result["tool_used"] = "realm"
+
+        # privileged groups via getent (sssd exposes AD groups)
+        r2 = ctx.run(["getent", "group"], check=False)
+        if r2.ok() and r2.stdout:
+            for line in r2.stdout.splitlines():
+                parts = line.split(":")
+                if len(parts) == 4 and any(
+                    kw in parts[0].lower()
+                    for kw in ("domain admins", "admins", "administrators", "sudo", "wheel")
+                ):
+                    result["privileged_groups"].append({
+                        "name": parts[0],
+                        "gid": parts[2],
+                        "members": [m for m in parts[3].split(",") if m],
+                    })
+        return result
+
+    # --- net ads (Samba) ---
+    r = ctx.run(["net", "ads", "info"], check=False)
+    if r.ok() and r.stdout:
+        domain = None
+        for line in r.stdout.splitlines():
+            if line.startswith("Realm:") or line.startswith("LDAP server name:"):
+                domain = line.split(":", 1)[1].strip()
+                break
+        result["domain"] = domain
+        result["joined"] = domain is not None
+        result["tool_used"] = "net_ads"
+
+        # Domain admins group
+        r2 = ctx.run(["net", "ads", "group", "members", "Domain Admins"], check=False)
+        if r2.ok() and r2.stdout:
+            members = [m.strip() for m in r2.stdout.splitlines() if m.strip()]
+            result["privileged_groups"].append({
+                "name": "Domain Admins",
+                "members": members,
+            })
+
+        # Sample of domain users
+        r3 = ctx.run(["net", "ads", "user"], check=False)
+        if r3.ok() and r3.stdout:
+            result["domain_users_sample"] = [
+                u.strip() for u in r3.stdout.splitlines() if u.strip()
+            ][:20]
+        return result
+
+    # --- wbinfo (winbind) ---
+    r = ctx.run(["wbinfo", "--own-domain"], check=False)
+    if r.ok() and r.stdout.strip():
+        result["domain"] = r.stdout.strip()
+        result["joined"] = True
+        result["tool_used"] = "wbinfo"
+
+        r2 = ctx.run(["wbinfo", "-u"], check=False)
+        if r2.ok() and r2.stdout:
+            result["domain_users_sample"] = [
+                u.strip() for u in r2.stdout.splitlines() if u.strip()
+            ][:20]
+
+        r3 = ctx.run(["wbinfo", "--group-info", "Domain Admins"], check=False)
+        if r3.ok() and r3.stdout:
+            parts = r3.stdout.strip().split(":")
+            if len(parts) >= 4:
+                result["privileged_groups"].append({
+                    "name": "Domain Admins",
+                    "gid": parts[2],
+                    "members": [m for m in parts[3].split(",") if m],
+                })
+        return result
+
+    # Nothing available — AD not configured or no tools installed
+    result["joined"] = False
+    result["tool_used"] = None
+    return result
+
+
 def _aws_iam(region: Optional[str], profile: Optional[str]) -> Dict[str, Any]:
     try:
         import boto3
@@ -70,10 +174,13 @@ def collect(
     include_aws: bool = False,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
+    include_ad: bool = False,
 ) -> Dict[str, Any]:
     """Collect entitlement evidence."""
     ctx = ctx or LocalContext()
     data: Dict[str, Any] = {"local_groups": _local_groups(ctx)}
     if include_aws:
         data["aws_iam"] = _aws_iam(aws_region, aws_profile)
+    if include_ad:
+        data["active_directory"] = _ad_entitlements(ctx)
     return data

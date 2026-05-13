@@ -238,6 +238,55 @@ class TestEntitlementsCollector:
         data = entitlements.collect(ctx=self._ctx())
         assert "aws_iam" not in data
 
+    def test_no_ad_by_default(self):
+        data = entitlements.collect(ctx=self._ctx())
+        assert "active_directory" not in data
+
+    # --- Active Directory entitlements ---
+
+    def test_ad_realm_joined(self):
+        ctx = FakeContext(commands={
+            "realm list": "corp.example.com\n  domain-name: corp.example.com\n",
+            "getent group": GROUP_TEXT,
+        })
+        data = entitlements.collect(ctx=ctx, include_ad=True)
+        ad = data["active_directory"]
+        assert ad["joined"] is True
+        assert ad["domain"] == "corp.example.com"
+        assert ad["tool_used"] == "realm"
+
+    def test_ad_not_joined_when_realm_fails(self):
+        ctx = FakeContext()
+        data = entitlements.collect(ctx=ctx, include_ad=True)
+        ad = data["active_directory"]
+        assert ad["joined"] is False
+        assert ad["tool_used"] is None
+
+    def test_ad_net_ads_fallback(self):
+        ctx = FakeContext(commands={
+            "net ads info": "Realm: CORP.EXAMPLE.COM\nLDAP server name: dc1.corp.example.com\n",
+            "net ads group members Domain Admins": "CORP\\\\administrator\nCORP\\\\svcaccount\n",
+            "net ads user": "administrator\nalice\nbob\n",
+        })
+        data = entitlements.collect(ctx=ctx, include_ad=True)
+        ad = data["active_directory"]
+        assert ad["joined"] is True
+        assert ad["tool_used"] == "net_ads"
+        assert len(ad["privileged_groups"]) == 1
+        assert ad["privileged_groups"][0]["name"] == "Domain Admins"
+
+    def test_ad_wbinfo_fallback(self):
+        ctx = FakeContext(commands={
+            "wbinfo --own-domain": "CORP\n",
+            "wbinfo -u": "CORP\\\\alice\nCORP\\\\bob\n",
+            "wbinfo --group-info Domain Admins": "Domain Admins:x:10512:CORP\\\\alice,CORP\\\\bob",
+        })
+        data = entitlements.collect(ctx=ctx, include_ad=True)
+        ad = data["active_directory"]
+        assert ad["joined"] is True
+        assert ad["tool_used"] == "wbinfo"
+        assert len(ad["domain_users_sample"]) == 2
+
 
 # ---------------------------------------------------------------------------
 # logging collector
@@ -369,6 +418,184 @@ class TestStorageCollector:
         assert len(data["crypttab"]) == 1
         assert data["crypttab"][0]["name"] == "luks-abc"
         assert data["encryption_detected"] is True
+
+
+# ---------------------------------------------------------------------------
+# config_mgmt collector
+# ---------------------------------------------------------------------------
+
+ANSIBLE_LOG = """\
+2024-01-15 10:00:00,000 PLAY [all] ****
+2024-01-15 10:01:00,000 TASK [Gathering Facts]
+2024-01-15 10:01:05,123 ok: [host1]
+"""
+
+TERRAFORM_STATE = json.dumps({
+    "version": 4,
+    "terraform_version": "1.5.0",
+    "serial": 42,
+    "lineage": "abc-123",
+    "resources": [],
+})
+
+GIT_LOG_OUTPUT = "deadbeef|deploy@example.com|2024-01-15 10:00:00 +0000|Apply config changes"
+
+
+class TestConfigMgmtCollector:
+    # --- ansible evidence ---
+
+    def test_ansible_log_present(self):
+        ctx = FakeContext(files={"/var/log/ansible.log": ANSIBLE_LOG})
+        data = config_mgmt.collect(ctx=ctx)
+        assert data["ansible"]["log_exists"] is True
+
+    def test_ansible_log_missing(self):
+        ctx = FakeContext()
+        data = config_mgmt.collect(ctx=ctx)
+        assert data["ansible"]["log_exists"] is False
+        assert data["ansible"]["last_run"] is None
+
+    def test_ansible_last_run_parsed(self):
+        ctx = FakeContext(
+            files={"/var/log/ansible.log": ANSIBLE_LOG},
+            commands={"tail -20 /var/log/ansible.log": ANSIBLE_LOG},
+        )
+        data = config_mgmt.collect(ctx=ctx)
+        assert data["ansible"]["last_run"] is not None
+        assert data["ansible"]["last_run"].startswith("2024-01-15")
+
+    # --- terraform evidence ---
+
+    def test_terraform_state_parsed(self):
+        ctx = FakeContext(files={"terraform.tfstate": TERRAFORM_STATE})
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=["terraform.tfstate"],
+            git_config_paths=[],
+        )
+        tf = data["terraform"]
+        assert tf["serial"] == 42
+        assert tf["terraform_version"] == "1.5.0"
+        assert tf["lineage"] == "abc-123"
+
+    def test_terraform_state_missing(self):
+        ctx = FakeContext()
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=["terraform.tfstate"],
+            git_config_paths=[],
+        )
+        assert data["terraform"] == {}
+
+    def test_terraform_invalid_json_skipped(self):
+        ctx = FakeContext(files={"terraform.tfstate": "not-json"})
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=["terraform.tfstate"],
+            git_config_paths=[],
+        )
+        assert data["terraform"] == {}
+
+    def test_terraform_first_valid_state_wins(self):
+        ctx = FakeContext(
+            files={
+                "bad.tfstate": "not-json",
+                "terraform.tfstate": TERRAFORM_STATE,
+            }
+        )
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=["bad.tfstate", "terraform.tfstate"],
+            git_config_paths=[],
+        )
+        assert data["terraform"]["serial"] == 42
+
+    # --- git evidence ---
+
+    def test_git_repo_found(self):
+        ctx = FakeContext(
+            dirs={"/etc/ansible"},
+            commands={"git -C /etc/ansible log -1 --format=%H|%ae|%ai|%s": GIT_LOG_OUTPUT},
+        )
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=[],
+            git_config_paths=["/etc/ansible"],
+        )
+        repos = data["git_repos"]
+        assert len(repos) == 1
+        assert repos[0]["path"] == "/etc/ansible"
+        assert repos[0]["last_commit_sha"] == "deadbeef"
+        assert repos[0]["author_email"] == "deploy@example.com"
+        assert "Apply config" in repos[0]["message"]
+
+    def test_git_path_not_a_dir_skipped(self):
+        ctx = FakeContext()
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=[],
+            git_config_paths=["/etc/ansible"],
+        )
+        assert data["git_repos"] == []
+
+    def test_git_command_fails_skipped(self):
+        ctx = FakeContext(dirs={"/etc/ansible"})
+        # No matching command → exit_code=1, ok() returns False
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=[],
+            git_config_paths=["/etc/ansible"],
+        )
+        assert data["git_repos"] == []
+
+    def test_git_malformed_output_skipped(self):
+        ctx = FakeContext(
+            dirs={"/opt/config"},
+            commands={"git -C /opt/config log -1 --format=%H|%ae|%ai|%s": "only|three|parts"},
+        )
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=[],
+            git_config_paths=["/opt/config"],
+        )
+        assert data["git_repos"] == []
+
+    # --- top-level collect() ---
+
+    def test_config_mgmt_detected_when_ansible_present(self):
+        ctx = FakeContext(files={"/var/log/ansible.log": ANSIBLE_LOG})
+        data = config_mgmt.collect(ctx=ctx, terraform_state_paths=[], git_config_paths=[])
+        assert data["config_mgmt_detected"] is True
+
+    def test_config_mgmt_detected_when_terraform_present(self):
+        ctx = FakeContext(files={"terraform.tfstate": TERRAFORM_STATE})
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=["terraform.tfstate"],
+            git_config_paths=[],
+        )
+        assert data["config_mgmt_detected"] is True
+
+    def test_config_mgmt_detected_when_git_present(self):
+        ctx = FakeContext(
+            dirs={"/etc/ansible"},
+            commands={"git -C /etc/ansible log -1 --format=%H|%ae|%ai|%s": GIT_LOG_OUTPUT},
+        )
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=[],
+            git_config_paths=["/etc/ansible"],
+        )
+        assert data["config_mgmt_detected"] is True
+
+    def test_config_mgmt_not_detected_when_nothing_present(self):
+        ctx = FakeContext()
+        data = config_mgmt.collect(
+            ctx=ctx,
+            terraform_state_paths=["terraform.tfstate"],
+            git_config_paths=["/etc/ansible"],
+        )
+        assert data["config_mgmt_detected"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -677,3 +904,91 @@ class TestBuilder:
         results = b._patching_controls(data)
         si2 = next(c for c in results if c.id == "SI-2")
         assert si2.status == "fail"
+
+
+# ---------------------------------------------------------------------------
+# ERS schema validation
+# ---------------------------------------------------------------------------
+
+class TestAuditPackageValidation:
+    def _valid_package(self):
+        return AuditPackage(
+            frameworks=["fedramp"],
+            controls=[
+                ControlResult(
+                    id="IA-2",
+                    title="Identification and Authentication",
+                    status="pass",
+                    framework="nist-800-53",
+                )
+            ],
+        )
+
+    def test_valid_package_has_no_errors(self):
+        errors = self._valid_package().validate()
+        assert errors == []
+
+    def test_empty_package_id_flagged(self):
+        pkg = self._valid_package()
+        pkg.package_id = ""
+        errors = pkg.validate()
+        assert any("package_id" in e for e in errors)
+
+    def test_empty_hostname_flagged(self):
+        pkg = self._valid_package()
+        pkg.hostname = ""
+        errors = pkg.validate()
+        assert any("hostname" in e for e in errors)
+
+    def test_empty_generated_at_flagged(self):
+        pkg = self._valid_package()
+        pkg.generated_at = ""
+        errors = pkg.validate()
+        assert any("generated_at" in e for e in errors)
+
+    def test_empty_frameworks_flagged(self):
+        pkg = self._valid_package()
+        pkg.frameworks = []
+        errors = pkg.validate()
+        assert any("frameworks" in e for e in errors)
+
+    def test_unknown_framework_flagged(self):
+        pkg = self._valid_package()
+        pkg.frameworks = ["fedramp", "pci-dss"]
+        errors = pkg.validate()
+        assert any("pci-dss" in e for e in errors)
+
+    def test_empty_controls_flagged(self):
+        pkg = self._valid_package()
+        pkg.controls = []
+        errors = pkg.validate()
+        assert any("controls" in e for e in errors)
+
+    def test_invalid_control_status_flagged(self):
+        pkg = self._valid_package()
+        pkg.controls[0].status = "unknown"
+        errors = pkg.validate()
+        assert any("invalid status" in e for e in errors)
+
+    def test_empty_control_framework_flagged(self):
+        pkg = self._valid_package()
+        pkg.controls[0].framework = ""
+        errors = pkg.validate()
+        assert any("framework is empty" in e for e in errors)
+
+    def test_multiple_errors_reported(self):
+        pkg = self._valid_package()
+        pkg.hostname = ""
+        pkg.frameworks = []
+        errors = pkg.validate()
+        assert len(errors) >= 2
+
+    def test_all_known_frameworks_accepted(self):
+        for fw in ("fedramp", "hipaa", "sox", "glba"):
+            pkg = AuditPackage(
+                frameworks=[fw],
+                controls=[
+                    ControlResult(id="AC-2", title="Account Management", status="pass", framework="nist-800-53")
+                ],
+            )
+            assert pkg.validate() == [], f"Framework {fw!r} should be valid"

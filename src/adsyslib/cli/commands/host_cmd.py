@@ -4,7 +4,7 @@ from typing import List, Optional
 
 app = typer.Typer(help="Scan hosts, containers, and Kubernetes pods/clusters.")
 
-VALID_SERVICES = ["postfix", "dns", "dovecot", "nginx"]
+VALID_SERVICES = ["apache", "dns", "dovecot", "mysql", "nginx", "postgresql", "postfix", "redis", "spamassassin"]
 
 
 @app.command("scan")
@@ -140,27 +140,47 @@ def cluster(
 
 @app.command("fleet")
 def fleet(
-    hosts: List[str] = typer.Argument(..., help="Hostnames or IPs to scan over SSH"),
-    user: str = typer.Option("root", "--user", "-u"),
-    key_file: Optional[str] = typer.Option(None, "--key-file", "-i"),
+    hosts: List[str] = typer.Argument(None, help="SSH hostnames or IPs"),
+    user: str = typer.Option("root", "--user", "-u", help="SSH username"),
+    key_file: Optional[str] = typer.Option(None, "--key-file", "-i", help="SSH private key"),
+    containers: List[str] = typer.Option([], "--container", "-c", help="Docker container name/ID (repeatable)"),
+    pods: List[str] = typer.Option([], "--pod", "-p", help="Kubernetes pod name (repeatable)"),
+    pod_namespace: str = typer.Option("default", "--pod-namespace", help="Namespace for --pod targets"),
+    kube_context: Optional[str] = typer.Option(None, "--kube-context", help="kubectl context for pod targets"),
     services: List[str] = typer.Option([], "--service", "-s", help="Services to scan. Omit for all."),
     workers: int = typer.Option(10, "--workers", "-w", help="Parallel connections"),
     output: Optional[str] = typer.Option(None, "--output", "-o"),
     fmt: str = typer.Option("text", "--format", "-f", help="text or json"),
 ):
     """
-    Scan a fleet of hosts in parallel over SSH.
+    Scan a mixed fleet of SSH hosts, Docker containers, and Kubernetes pods in parallel.
 
     Examples:
 
+      # SSH only
       adsys host fleet web-01 web-02 web-03 --user admin --key-file ~/.ssh/id_ed25519
 
+      # Mixed fleet
+      adsys host fleet web-01 --container nginx-proxy --pod api-abc123 --pod-namespace prod
+
+      # Specific services
       adsys host fleet web-01 web-02 -s nginx -s postfix --workers 20 --format json
     """
-    from adsyslib.host import ssh_to_host, scan_fleet
+    from adsyslib.host import docker_container, kube_pod, ssh_to_host, scan_fleet
 
-    sessions = [ssh_to_host(h, user=user, key_file=key_file) for h in hosts]
-    typer.echo(f"Scanning {len(sessions)} host(s) with {workers} workers ...")
+    sessions = []
+    for h in (hosts or []):
+        sessions.append(ssh_to_host(h, user=user, key_file=key_file))
+    for c in containers:
+        sessions.append(docker_container(c))
+    for p in pods:
+        sessions.append(kube_pod(p, namespace=pod_namespace, context=kube_context))
+
+    if not sessions:
+        typer.echo("Specify at least one target: hostname, --container, or --pod", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(f"Scanning {len(sessions)} target(s) with {workers} workers ...")
 
     report = scan_fleet(sessions, services=services or None, workers=workers)
 
