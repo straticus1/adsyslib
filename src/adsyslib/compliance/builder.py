@@ -57,6 +57,22 @@ def _auth_controls(data: Dict[str, Any]) -> List[ControlResult]:
         framework="nist-800-53",
     ))
 
+    # IA-8: non-org users require pubkey or MFA — no password-only auth
+    pwd_auth = sshd.get("password_authentication", "yes").lower()
+    pubkey_auth = sshd.get("pubkey_authentication", "yes").lower()
+    ia8_pass = pwd_auth == "no" or pubkey_auth == "yes" or mfa.get("mfa_detected")
+    results.append(ControlResult(
+        id="IA-8",
+        title=control_title("IA-8"),
+        status="pass" if ia8_pass else "fail",
+        evidence=(
+            f"PasswordAuthentication={pwd_auth}, "
+            f"PubkeyAuthentication={pubkey_auth}, "
+            f"mfa_detected={mfa.get('mfa_detected')}"
+        ),
+        framework="nist-800-53",
+    ))
+
     return results
 
 
