@@ -25,9 +25,13 @@ dependencies = [
     "requests>=2.31.0",
     "rich>=13.7.0",  # For pretty output/logging
     "typer>=0.9.0",  # For CLI
+    "pyyaml>=6.0",   # For YAML audit package serialization
 ]
 
 [project.optional-dependencies]
+remote = [
+    "paramiko>=3.0",
+]
 dev = [
     "pytest>=7.0",
     "black",

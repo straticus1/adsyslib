@@ -114,6 +114,16 @@ def run(
         duration = time.time() - start_time
         logger.error(f"Command timed out after {duration:.2f}s: {cmd_str}")
         raise
+    except FileNotFoundError:
+        duration = time.time() - start_time
+        logger.debug(f"Command not found: {cmd_str}")
+        result = CommandResult(
+            stdout="", stderr=f"command not found: {cmd_str}",
+            exit_code=127, command=cmd_str, duration=duration,
+        )
+        if check:
+            raise ShellError(result)
+        return result
 
 class Shell:
     """
