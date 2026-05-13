@@ -1,20 +1,24 @@
 """
-HostSession — SSH connection with pre-built service scanners.
+HostSession — shell-agnostic service scanner session.
+
+The same session works over SSH, docker exec, or kubectl exec —
+swap in the appropriate shell and all scanners just work.
 
 Usage:
-    # Context manager (auto-connect/disconnect)
+    # SSH to a bare metal / VM host
     with ssh_to_host("mail.corp.com", user="root") as host:
-        print(host.postfix.scan())
-        print(host.dns.scan())
         report = host.scan_all()
+        report.print_summary()
 
-    # Manual connect/disconnect
-    host = ssh_to_host("10.0.0.5", user="admin", key_file="~/.ssh/id_ed25519")
-    host.connect()
-    result = host.postfix.scan()
-    host.disconnect()
+    # Scan a running Docker container
+    with docker_container("nginx-proxy-1") as host:
+        print(host.nginx.scan())
 
-    # Run an arbitrary command
+    # Scan a Kubernetes pod
+    with kube_pod("nginx-6d4cf56db6-xkbzr", namespace="prod") as host:
+        print(host.nginx.scan())
+
+    # Run an arbitrary command on any target
     with ssh_to_host("box.corp.com", user="ops") as host:
         r = host.run(["systemctl", "list-units", "--failed"])
         print(r.stdout)
@@ -39,16 +43,17 @@ _SCANNER_REGISTRY = {
 
 class HostSession:
     """
-    SSH session with lazy-initialized service scanners.
+    Shell-agnostic session with lazy-initialized service scanners.
 
-    Attributes are resolved on first access so you only pay for
-    the connection, not for instantiating every scanner up front.
+    Accepts any shell object that implements run/read_text/connect/disconnect.
+    Use the factory functions (ssh_to_host, docker_container, kube_pod)
+    rather than instantiating directly.
     """
 
     def __init__(
         self,
         host: str,
-        user: str,
+        user: str = "root",
         port: int = 22,
         key_file: Optional[str] = None,
         password: Optional[str] = None,
@@ -62,13 +67,23 @@ class HostSession:
         )
         self._scanners: Dict[str, Any] = {}
 
+    @classmethod
+    def _from_shell(cls, shell: Any, label: Optional[str] = None) -> "HostSession":
+        """Build a HostSession around any compatible shell object."""
+        obj = cls.__new__(cls)
+        obj.host = label or getattr(shell, "host", str(shell))
+        obj.user = getattr(shell, "user", "")
+        obj._shell = shell
+        obj._scanners = {}
+        return obj
+
     # ------------------------------------------------------------------
     # Connection
     # ------------------------------------------------------------------
 
     def connect(self) -> "HostSession":
         self._shell.connect()
-        logger.info(f"Connected to {self.user}@{self.host}")
+        logger.info(f"Connected to {self.host}")
         return self
 
     def disconnect(self) -> None:
@@ -81,15 +96,13 @@ class HostSession:
         self.disconnect()
 
     # ------------------------------------------------------------------
-    # Raw command execution
+    # Raw execution
     # ------------------------------------------------------------------
 
     def run(self, cmd, check: bool = False):
-        """Run an arbitrary command on the remote host."""
         return self._shell.run(cmd, check=check)
 
     def read_text(self, path: str) -> Optional[str]:
-        """Read a remote file as text."""
         return self._shell.read_text(path)
 
     # ------------------------------------------------------------------
@@ -121,17 +134,10 @@ class HostSession:
         return self._scanner("nginx")
 
     # ------------------------------------------------------------------
-    # Scan all registered services
+    # Scan all
     # ------------------------------------------------------------------
 
     def scan_all(self, services: Optional[List[str]] = None) -> "HostReport":
-        """
-        Run all (or a named subset of) scanners and return a HostReport.
-
-        Args:
-            services: list of scanner names to run, e.g. ["postfix", "dns"].
-                      Defaults to all registered scanners.
-        """
         targets = services or list(_SCANNER_REGISTRY)
         results: Dict[str, ScanResult] = {}
         for name in targets:
@@ -146,11 +152,11 @@ class HostSession:
         return HostReport(host=self.host, results=results)
 
     def __repr__(self) -> str:
-        return f"HostSession({self.user}@{self.host})"
+        return f"HostSession({self.host})"
 
 
 class HostReport:
-    """Aggregated scan results for a single host."""
+    """Aggregated scan results for a single host/container/pod."""
 
     def __init__(self, host: str, results: Dict[str, ScanResult]):
         self.host = host
@@ -160,11 +166,7 @@ class HostReport:
         return all(r.ok() for r in self.results.values())
 
     def issues(self) -> Dict[str, List[str]]:
-        return {
-            svc: r.issues
-            for svc, r in self.results.items()
-            if r.issues
-        }
+        return {svc: r.issues for svc, r in self.results.items() if r.issues}
 
     def summary(self) -> Dict[str, Any]:
         return {
@@ -180,15 +182,14 @@ class HostReport:
             },
         }
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "host": self.host,
+            "services": {svc: r.to_dict() for svc, r in self.results.items()},
+        }
+
     def to_json(self, indent: int = 2) -> str:
-        return json.dumps(
-            {
-                "host": self.host,
-                "services": {svc: r.to_dict() for svc, r in self.results.items()},
-            },
-            indent=indent,
-            default=str,
-        )
+        return json.dumps(self.to_dict(), indent=indent, default=str)
 
     def print_summary(self) -> None:
         status = "OK" if self.ok() else "ISSUES FOUND"

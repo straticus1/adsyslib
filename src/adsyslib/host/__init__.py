@@ -1,29 +1,53 @@
 """
-adsyslib.host — SSH-based host scanning with pre-built service scanners.
+adsyslib.host — SSH/Docker/Kubernetes host scanning with pre-built service scanners.
+
+The same scanners work across all target types — swap the shell, everything else
+stays the same.
 
 Quick start:
-    from adsyslib.host import ssh_to_host
+    from adsyslib.host import ssh_to_host, docker_container, kube_pod, scan_fleet
+    from adsyslib.host import KubernetesClusterScanner
 
+    # Bare metal / VM
     with ssh_to_host("mail.corp.com", user="root", key_file="~/.ssh/id_ed25519") as host:
-        # Scan a specific service
-        result = host.postfix.scan()
-        print(result.issues)
-
-        # Run all scanners at once
         report = host.scan_all()
         report.print_summary()
-        print(report.to_json())
 
-        # Scan a subset
-        report = host.scan_all(services=["postfix", "dns"])
+    # Docker container
+    with docker_container("nginx-proxy-1") as host:
+        print(host.nginx.scan())
 
-        # Run arbitrary commands
-        r = host.run(["df", "-h"])
-        print(r.stdout)
+    # Kubernetes pod (in-pod service scan)
+    with kube_pod("api-abc123", namespace="prod") as host:
+        print(host.postfix.scan())
+
+    # Kubernetes cluster health (API-level)
+    scanner = KubernetesClusterScanner(context="prod-cluster")
+    report = scanner.scan()
+    report.print_summary()
+
+    # Fleet scan — mixed targets, parallel
+    targets = [
+        ssh_to_host("web-01", user="root"),
+        ssh_to_host("web-02", user="root"),
+        docker_container("nginx-proxy"),
+        kube_pod("api-abc123", namespace="prod"),
+    ]
+    fleet = scan_fleet(targets, services=["nginx", "postfix"], workers=8)
+    fleet.print_summary()
+    fleet.save("fleet_report.json")
 """
-from .session import HostReport, HostSession
-from .scanners import ScanResult, ServiceScanner, PostfixScanner, DnsScanner, DovecotScanner, NginxScanner
 from typing import Optional
+
+from .session import HostReport, HostSession
+from .fleet import FleetReport, scan_fleet
+from .docker_shell import DockerShell
+from .kube_shell import KubeShell
+from .scanners import (
+    ScanResult, ServiceScanner,
+    PostfixScanner, DnsScanner, DovecotScanner, NginxScanner,
+)
+from .scanners.k8s import KubernetesClusterScanner, ClusterReport
 
 
 def ssh_to_host(
@@ -35,20 +59,11 @@ def ssh_to_host(
     timeout: float = 30.0,
 ) -> HostSession:
     """
-    Create a HostSession for the given host.
+    Create a HostSession over SSH.
 
-    Does NOT connect automatically — use as a context manager or call .connect() manually.
-
-    Args:
-        host:     Hostname or IP address.
-        user:     SSH username (default: root).
-        port:     SSH port (default: 22).
-        key_file: Path to SSH private key. Falls back to ssh-agent / default keys.
-        password: SSH password. Prefer key auth.
-        timeout:  Connection + command timeout in seconds.
-
-    Returns:
-        HostSession (use as context manager for auto-connect/disconnect)
+    Use as a context manager for auto-connect/disconnect:
+        with ssh_to_host("10.0.0.5", user="admin") as host:
+            report = host.scan_all()
     """
     return HostSession(
         host=host, user=user, port=port,
@@ -56,14 +71,70 @@ def ssh_to_host(
     )
 
 
+def docker_container(
+    container: str,
+    docker_cmd: str = "docker",
+    user: Optional[str] = None,
+) -> HostSession:
+    """
+    Create a HostSession that execs into a running Docker container.
+
+    The container must already be running. No SSH needed.
+
+    Args:
+        container: Container name or ID.
+        docker_cmd: Path to docker binary (default: "docker").
+        user: User to exec as inside the container.
+    """
+    shell = DockerShell(container=container, docker_cmd=docker_cmd, user=user)
+    return HostSession._from_shell(shell, label=f"docker:{container}")
+
+
+def kube_pod(
+    pod: str,
+    namespace: str = "default",
+    container: Optional[str] = None,
+    context: Optional[str] = None,
+    kubectl_cmd: str = "kubectl",
+) -> HostSession:
+    """
+    Create a HostSession that execs into a running Kubernetes pod.
+
+    Args:
+        pod:        Pod name.
+        namespace:  Kubernetes namespace (default: "default").
+        container:  Container name within the pod (required for multi-container pods).
+        context:    kubectl context to use (default: current context).
+        kubectl_cmd: Path to kubectl binary.
+    """
+    shell = KubeShell(
+        pod=pod, namespace=namespace, container=container,
+        context=context, kubectl_cmd=kubectl_cmd,
+    )
+    return HostSession._from_shell(shell, label=f"k8s:{namespace}/{pod}")
+
+
 __all__ = [
+    # Factory functions
     "ssh_to_host",
+    "docker_container",
+    "kube_pod",
+    "scan_fleet",
+    # Session / report types
     "HostSession",
     "HostReport",
+    "FleetReport",
+    # K8s cluster (API-level)
+    "KubernetesClusterScanner",
+    "ClusterReport",
+    # Scanner types (for custom scanners)
     "ScanResult",
     "ServiceScanner",
     "PostfixScanner",
     "DnsScanner",
     "DovecotScanner",
     "NginxScanner",
+    # Shell types (for advanced use)
+    "DockerShell",
+    "KubeShell",
 ]
