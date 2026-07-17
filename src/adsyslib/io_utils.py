@@ -1,8 +1,10 @@
 import os
 import sys
 import tempfile
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator, Tuple
+from typing import Tuple
+
 
 class IOCatcher:
     """

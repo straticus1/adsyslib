@@ -1,6 +1,8 @@
 import typer
 from rich.console import Console
-from adsyslib.core import run as core_run, ShellError
+
+from adsyslib.core import ShellError
+from adsyslib.core import run as core_run
 
 app = typer.Typer()
 console = Console()

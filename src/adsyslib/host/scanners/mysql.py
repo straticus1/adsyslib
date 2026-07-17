@@ -1,7 +1,6 @@
 """
 MySQL/MariaDB scanner — service status, version, config, security settings.
 """
-import re
 from typing import Any, Dict, List
 
 from .base import ScanResult, ServiceScanner

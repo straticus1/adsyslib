@@ -3,22 +3,20 @@ Tests for DockerShell, KubeShell, KubernetesClusterScanner, and FleetReport.
 Uses FakeProcess to intercept local subprocess calls without real Docker/kubectl.
 """
 import json
-from typing import Dict, List, Optional
+from typing import Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from adsyslib.core import CommandResult
 from adsyslib.host.docker_shell import DockerShell
-from adsyslib.host.kube_shell import KubeShell
 from adsyslib.host.fleet import FleetReport, scan_fleet
+from adsyslib.host.kube_shell import KubeShell
+from adsyslib.host.scanners import ScanResult
 from adsyslib.host.scanners.k8s import (
-    KubernetesClusterScanner, ClusterReport,
-    NodeStatus, PodStatus, DeploymentStatus, PVCStatus,
+    KubernetesClusterScanner,
 )
 from adsyslib.host.session import HostReport, HostSession
-from adsyslib.host.scanners import ScanResult
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -69,8 +67,6 @@ class TestDockerShell:
         assert shell.host == "docker:nginx-proxy"
 
     def test_read_text_uses_cat(self):
-        results = {}
-
         def fake_run(cmd, **_):
             key = " ".join(cmd) if isinstance(cmd, list) else cmd
             if "cat /etc/passwd" in key:

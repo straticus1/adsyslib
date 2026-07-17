@@ -4,9 +4,8 @@ Orchestrates collectors → evaluates controls → builds an AuditPackage.
 import logging
 from typing import Any, Dict, List, Optional
 
-from .collectors import admin, auth, config_mgmt, entitlements
+from .collectors import admin, auth, config_mgmt, entitlements, network, patching, storage
 from .collectors import logging as logging_col
-from .collectors import network, patching, storage
 from .context import CollectionContext, LocalContext, RemoteContext
 from .controls import control_title, get_controls_for_frameworks
 from .package import AuditPackage, ControlResult

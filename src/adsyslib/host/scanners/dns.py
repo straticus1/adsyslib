@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional
 
 from .base import ScanResult, ServiceScanner
 
-
 _NAMED_CONF_PATHS = [
     "/etc/named.conf",
     "/etc/bind/named.conf",

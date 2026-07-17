@@ -1,7 +1,6 @@
 """
 Redis scanner — service status, version, auth config, bind address, TLS.
 """
-import re
 from typing import Any, Dict, List
 
 from .base import ScanResult, ServiceScanner

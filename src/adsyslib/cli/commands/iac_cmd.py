@@ -1,10 +1,10 @@
+from typing import Optional
+
 import typer
-import json
 from rich.console import Console
-from rich.syntax import Syntax
-from typing import List, Optional
-from adsyslib.iac.terraform import TerraformRunner
+
 from adsyslib.iac.ansible import AnsibleRunner
+from adsyslib.iac.terraform import TerraformRunner
 
 app = typer.Typer()
 console = Console()

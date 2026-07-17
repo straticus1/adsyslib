@@ -1,7 +1,8 @@
 import logging
-import pexpect
 import sys
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple
+
+import pexpect
 
 logger = logging.getLogger(__name__)
 

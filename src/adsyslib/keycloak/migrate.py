@@ -3,9 +3,10 @@ Keycloak to Authentik migration utilities.
 Helps migrate users, groups, and applications from Keycloak to Authentik.
 """
 import logging
-from typing import List, Dict, Any, Optional
-from adsyslib.keycloak.client import KeycloakClient
+from typing import Any, Dict, List
+
 from adsyslib.authentik.client import AuthentikClient
+from adsyslib.keycloak.client import KeycloakClient
 
 logger = logging.getLogger(__name__)
 

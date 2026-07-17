@@ -6,19 +6,19 @@ connection is needed.
 """
 import json
 from typing import Dict, Optional
+
 from adsyslib.core import CommandResult
-from adsyslib.host.session import HostSession, HostReport
 from adsyslib.host.scanners import ScanResult
 from adsyslib.host.scanners.apache import ApacheScanner
 from adsyslib.host.scanners.dns import DnsScanner
 from adsyslib.host.scanners.dovecot import DovecotScanner
 from adsyslib.host.scanners.mysql import MysqlScanner
 from adsyslib.host.scanners.nginx import NginxScanner
-from adsyslib.host.scanners.postgres import PostgresScanner
 from adsyslib.host.scanners.postfix import PostfixScanner
+from adsyslib.host.scanners.postgres import PostgresScanner
 from adsyslib.host.scanners.redis import RedisScanner
 from adsyslib.host.scanners.spamassassin import SpamassassinScanner
-
+from adsyslib.host.session import HostReport, HostSession
 
 # ---------------------------------------------------------------------------
 # Fake shell
@@ -753,7 +753,7 @@ class TestHostControls:
         assert "HOST_SCAN" in sc8.evidence
 
     def test_merge_appends_new_control(self):
-        from adsyslib.compliance import AuditPackage, ControlResult
+        from adsyslib.compliance import AuditPackage
         from adsyslib.compliance.builder import merge_host_findings
         pkg = AuditPackage(frameworks=["fedramp"], controls=[])
         report = self._report({"nginx": ["nginx is not running"]})

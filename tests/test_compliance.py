@@ -5,28 +5,30 @@ Uses a fake CollectionContext so tests are hermetic — no real SSH,
 no real filesystem reads, no package manager calls.
 """
 import json
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock
 
 import pytest
 
 from adsyslib.compliance import (
     AuditPackage,
     ControlResult,
-    DriftReport,
-    build_package,
     compare_packages,
     load_package,
 )
-from adsyslib.compliance.collectors import admin, auth, config_mgmt, entitlements, network, patching, storage
+from adsyslib.compliance.collectors import (
+    admin,
+    auth,
+    config_mgmt,
+    entitlements,
+    network,
+    patching,
+    storage,
+)
 from adsyslib.compliance.collectors import logging as logging_col
 from adsyslib.compliance.context import CollectionContext
-from adsyslib.compliance.controls import get_controls_for_frameworks, control_title
-from adsyslib.compliance.drift import ControlDrift
+from adsyslib.compliance.controls import control_title, get_controls_for_frameworks
 from adsyslib.core import CommandResult
-
 
 # ---------------------------------------------------------------------------
 # Fake context
@@ -804,20 +806,19 @@ def _make_full_ctx():
 
 class TestBuilder:
     def test_fedramp_control_count(self):
-        from adsyslib.compliance.controls import FRAMEWORK_CONTROLS
-        from adsyslib.compliance import build_package
         # Patch collectors to use our fake context
         from adsyslib.compliance import builder as b
+        from adsyslib.compliance.controls import FRAMEWORK_CONTROLS
         ctx = _make_full_ctx()
 
-        import adsyslib.compliance.collectors.auth as _auth
         import adsyslib.compliance.collectors.admin as _admin
+        import adsyslib.compliance.collectors.auth as _auth
         import adsyslib.compliance.collectors.config_mgmt as _cm
         import adsyslib.compliance.collectors.entitlements as _ent
         import adsyslib.compliance.collectors.logging as _log
         import adsyslib.compliance.collectors.network as _net
-        import adsyslib.compliance.collectors.storage as _stor
         import adsyslib.compliance.collectors.patching as _pat
+        import adsyslib.compliance.collectors.storage as _stor
 
         # Call build_package passing ctx through each collector manually
         # rather than monkey-patching — verify the evaluator logic directly

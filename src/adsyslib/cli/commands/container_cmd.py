@@ -1,7 +1,9 @@
+from typing import List, Optional
+
 import typer
 from rich.console import Console
 from rich.table import Table
-from typing import List, Optional
+
 from adsyslib.container.manager import DockerManager
 
 app = typer.Typer()

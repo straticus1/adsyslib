@@ -1,8 +1,9 @@
+from typing import Optional
+
 import typer
-import os
 from rich.console import Console
 from rich.table import Table
-from typing import Optional
+
 from adsyslib.cloud import get_cloud_provider
 
 app = typer.Typer()

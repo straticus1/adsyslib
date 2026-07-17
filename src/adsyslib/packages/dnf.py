@@ -1,6 +1,7 @@
 import logging
 from typing import List, Union
-from adsyslib.core import run, ShellError
+
+from adsyslib.core import ShellError, run
 from adsyslib.packages.base import PackageManager
 
 logger = logging.getLogger(__name__)

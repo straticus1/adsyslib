@@ -6,7 +6,6 @@ from typing import Any, Dict, List
 
 from .base import ScanResult, ServiceScanner
 
-
 # TLS levels that are acceptable for inbound and outbound
 _STRONG_TLS = {"encrypt", "may", "dane", "dane-only", "secure"}
 

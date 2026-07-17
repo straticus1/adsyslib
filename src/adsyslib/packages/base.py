@@ -1,6 +1,7 @@
+import os
 from abc import ABC, abstractmethod
 from typing import List, Union
-import os
+
 
 class PackageManager(ABC):
     """Abstract base class for package managers (apt, dnf, etc)."""

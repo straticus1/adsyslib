@@ -7,7 +7,8 @@ scanners work inside pods without modification.
 import logging
 from typing import Any, Dict, List, Optional
 
-from adsyslib.core import CommandResult, run as _run
+from adsyslib.core import CommandResult
+from adsyslib.core import run as _run
 
 logger = logging.getLogger(__name__)
 

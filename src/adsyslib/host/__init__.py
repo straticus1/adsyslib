@@ -39,15 +39,19 @@ Quick start:
 """
 from typing import Optional
 
-from .session import HostReport, HostSession
-from .fleet import FleetReport, scan_fleet
 from .docker_shell import DockerShell
+from .fleet import FleetReport, scan_fleet
 from .kube_shell import KubeShell
 from .scanners import (
-    ScanResult, ServiceScanner,
-    PostfixScanner, DnsScanner, DovecotScanner, NginxScanner,
+    DnsScanner,
+    DovecotScanner,
+    NginxScanner,
+    PostfixScanner,
+    ScanResult,
+    ServiceScanner,
 )
-from .scanners.k8s import KubernetesClusterScanner, ClusterReport
+from .scanners.k8s import ClusterReport, KubernetesClusterScanner
+from .session import HostReport, HostSession
 
 
 def ssh_to_host(

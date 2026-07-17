@@ -1,6 +1,7 @@
-import typer
 from pathlib import Path
 from typing import List, Optional
+
+import typer
 
 app = typer.Typer(help="Generate and compare compliance audit packages (FedRAMP, HIPAA, SOX, GLBA).")
 

@@ -7,8 +7,8 @@ but packaged as a reusable Python library.
 """
 import json
 import logging
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -317,7 +317,7 @@ def load_providers_from_json(json_file: str) -> List[OAuthProviderConfig]:
     Returns:
         List of OAuthProviderConfig objects
     """
-    with open(json_file, 'r') as f:
+    with open(json_file) as f:
         data = json.load(f)
 
     # Handle both formats: {"apps": [...]} or [...]

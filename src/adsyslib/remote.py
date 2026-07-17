@@ -124,28 +124,28 @@ class RemoteShell:
         try:
             with self._sftp.open(path, "r") as f:
                 return f.read().decode("utf-8", errors="replace")
-        except (IOError, OSError):
+        except OSError:
             return None
 
     def list_dir(self, path: str) -> List[str]:
         """Return directory listing, or [] if not found."""
         try:
             return self._sftp.listdir(path)
-        except (IOError, OSError):
+        except OSError:
             return []
 
     def path_exists(self, path: str) -> bool:
         try:
             self._sftp.stat(path)
             return True
-        except (IOError, OSError):
+        except OSError:
             return False
 
     def is_dir(self, path: str) -> bool:
         try:
             s = self._sftp.stat(path)
             return stat.S_ISDIR(s.st_mode) if s.st_mode else False
-        except (IOError, OSError):
+        except OSError:
             return False
 
     def path_stat(self, path: str) -> Optional[Dict[str, Any]]:
@@ -157,5 +157,5 @@ class RemoteShell:
                 "owner_uid": s.st_uid,
                 "mtime": s.st_mtime,
             }
-        except (IOError, OSError):
+        except OSError:
             return None

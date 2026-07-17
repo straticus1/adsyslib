@@ -1,9 +1,11 @@
 """
 Tests for core shell execution functionality.
 """
-import pytest
 import os
-from adsyslib.core import run, Shell, CommandResult, ShellError
+
+import pytest
+
+from adsyslib.core import Shell, ShellError, run
 
 
 def test_run_simple_command():

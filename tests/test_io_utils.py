@@ -1,8 +1,8 @@
 """
 Tests for IO capture utilities.
 """
-import pytest
 import sys
+
 from adsyslib.io_utils import IOCatcher, capture_io
 
 

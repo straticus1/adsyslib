@@ -1,6 +1,6 @@
-import json
-import typer
 from typing import List, Optional
+
+import typer
 
 app = typer.Typer(help="Scan hosts, containers, and Kubernetes pods/clusters.")
 
@@ -46,7 +46,7 @@ def scan(
       # Specific services only
       adsys host scan mail.corp.com -s postfix -s dns --format json
     """
-    from adsyslib.host import ssh_to_host, docker_container, kube_pod
+    from adsyslib.host import docker_container, kube_pod, ssh_to_host
 
     # Exactly one target type
     targets_specified = sum([bool(host), bool(container), bool(pod)])
@@ -166,7 +166,7 @@ def fleet(
       # Specific services
       adsys host fleet web-01 web-02 -s nginx -s postfix --workers 20 --format json
     """
-    from adsyslib.host import docker_container, kube_pod, ssh_to_host, scan_fleet
+    from adsyslib.host import docker_container, kube_pod, scan_fleet, ssh_to_host
 
     sessions = []
     for h in (hosts or []):

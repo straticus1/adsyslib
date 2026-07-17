@@ -44,7 +44,7 @@ class LocalContext(CollectionContext):
 
     def read_text(self, path: str) -> Optional[str]:
         try:
-            with open(path, "r", encoding="utf-8", errors="replace") as f:
+            with open(path, encoding="utf-8", errors="replace") as f:
                 return f.read()
         except (FileNotFoundError, PermissionError):
             return None

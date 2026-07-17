@@ -2,11 +2,11 @@
 Kubectl wrapper for managing Kubernetes resources.
 Provides high-level methods for common kubectl operations.
 """
-import logging
 import json
-import yaml
-from typing import List, Dict, Any, Optional, Union
-from adsyslib.core import run, Shell, ShellError
+import logging
+from typing import Any, Dict, List, Optional, Union
+
+from adsyslib.core import Shell
 
 logger = logging.getLogger(__name__)
 

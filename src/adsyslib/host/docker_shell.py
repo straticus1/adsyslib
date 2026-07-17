@@ -5,10 +5,10 @@ Implements the same interface as RemoteShell so all existing service
 scanners work inside containers without modification.
 """
 import logging
-import stat as stat_mod
 from typing import Any, Dict, List, Optional
 
-from adsyslib.core import CommandResult, run as _run
+from adsyslib.core import CommandResult
+from adsyslib.core import run as _run
 
 logger = logging.getLogger(__name__)
 

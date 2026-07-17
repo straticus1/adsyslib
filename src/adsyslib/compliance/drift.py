@@ -133,7 +133,7 @@ def compare_packages(baseline: AuditPackage, current: AuditPackage) -> DriftRepo
 
 def load_package(path: str) -> AuditPackage:
     """Deserialize an AuditPackage from a saved JSON file."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
     controls = [ControlResult(**c) for c in data.pop("controls", [])]
     return AuditPackage(controls=controls, **data)

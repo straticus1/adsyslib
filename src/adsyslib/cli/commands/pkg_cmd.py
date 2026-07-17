@@ -1,9 +1,10 @@
-import typer
 import logging
-from typing import List, Optional
+from typing import List
+
+import typer
 from rich.console import Console
-from adsyslib.packages import get_package_manager, Apt, Dnf
-from adsyslib.core import run
+
+from adsyslib.packages import Apt, Dnf, get_package_manager
 
 app = typer.Typer()
 console = Console()

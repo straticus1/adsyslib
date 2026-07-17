@@ -1,8 +1,9 @@
 import logging
 import time
-from typing import Optional, Dict, List, Any, Union
+from typing import Dict, List, Optional, Union
+
 import docker
-from docker.errors import DockerException, NotFound, APIError
+from docker.errors import DockerException, NotFound
 from docker.models.containers import Container
 
 logger = logging.getLogger(__name__)

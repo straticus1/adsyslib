@@ -2,10 +2,11 @@
 Package management utilities.
 Supports apt (Debian/Ubuntu), dnf (RHEL/Fedora), and auto-detection.
 """
-from adsyslib.packages.base import PackageManager
-from adsyslib.packages.apt import Apt
-from adsyslib.packages.dnf import Dnf
 from adsyslib.core import run
+from adsyslib.packages.apt import Apt
+from adsyslib.packages.base import PackageManager
+from adsyslib.packages.dnf import Dnf
+
 
 def get_package_manager() -> PackageManager:
     """

@@ -1,6 +1,8 @@
 import logging
-from rich.logging import RichHandler
 from typing import Optional
+
+from rich.logging import RichHandler
+
 
 def configure_logging(level: int = logging.INFO, log_file: Optional[str] = None):
     """

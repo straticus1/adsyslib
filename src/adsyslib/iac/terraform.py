@@ -1,8 +1,9 @@
 import json
 import logging
 import sys
-from typing import Dict, Any, Optional
-from adsyslib.core import run, ShellError, CommandResult
+from typing import Any, Dict
+
+from adsyslib.core import CommandResult, ShellError, run
 
 logger = logging.getLogger(__name__)
 

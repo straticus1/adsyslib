@@ -3,7 +3,8 @@ Keycloak Identity Provider Client.
 Basic client for extracting data from Keycloak for migration purposes.
 """
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import requests
 
 logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class KeycloakClient:
         if response.content:
             try:
                 return response.json()
-            except:
+            except ValueError:
                 return response.text
         return None
 

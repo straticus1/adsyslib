@@ -1,15 +1,17 @@
-import typer
-import os
 import json
+import os
+from typing import List, Optional
+
+import typer
 from rich.console import Console
 from rich.table import Table
-from typing import Optional, List
+
 from adsyslib.authentik import (
     AuthentikClient,
     AuthentikOAuthManager,
     OAuthProviderConfig,
+    generate_env_file,
     load_providers_from_json,
-    generate_env_file
 )
 
 app = typer.Typer()
@@ -234,7 +236,7 @@ def oauth_bulk_create(
         success_count = len([r for r in results if 'error' not in r])
         failed_count = len(results) - success_count
         
-        console.print(f"\n[bold]Summary:[/bold]")
+        console.print("\n[bold]Summary:[/bold]")
         console.print(f"  ✓ Created: {success_count}")
         if failed_count > 0:
             console.print(f"  ✗ Failed: {failed_count}")
@@ -328,9 +330,9 @@ def oauth_get(
         if show_secret:
             console.print(f"  Client Secret: [yellow]{provider['client_secret']}[/yellow]")
         else:
-            console.print(f"  Client Secret: [dim]<hidden, use --show-secret>[/dim]")
+            console.print("  Client Secret: [dim]<hidden, use --show-secret>[/dim]")
         console.print(f"  Client Type: {provider['client_type']}")
-        console.print(f"  Redirect URIs:")
+        console.print("  Redirect URIs:")
         for uri in provider.get('redirect_uris', []):
             console.print(f"    - {uri}")
             

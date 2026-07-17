@@ -28,10 +28,18 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from adsyslib.remote import RemoteShell
+
 from .scanners import (
-    ApacheScanner, DnsScanner, DovecotScanner, MysqlScanner,
-    NginxScanner, PostgresScanner, PostfixScanner, RedisScanner,
-    ScanResult, SpamassassinScanner,
+    ApacheScanner,
+    DnsScanner,
+    DovecotScanner,
+    MysqlScanner,
+    NginxScanner,
+    PostfixScanner,
+    PostgresScanner,
+    RedisScanner,
+    ScanResult,
+    SpamassassinScanner,
 )
 
 logger = logging.getLogger(__name__)

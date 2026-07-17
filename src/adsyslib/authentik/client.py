@@ -3,7 +3,8 @@ Authentik Identity Provider Management.
 High-level wrapper around authentik-client for managing users, groups, applications, and providers.
 """
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List
+
 import requests
 
 logger = logging.getLogger(__name__)

@@ -2,9 +2,10 @@
 Cloud provider integrations.
 Supports AWS (boto3) and Oracle Cloud Infrastructure (OCI).
 """
-from adsyslib.cloud.base import CloudProvider
 from adsyslib.cloud.aws import AWSProvider
+from adsyslib.cloud.base import CloudProvider
 from adsyslib.cloud.oracle import OracleProvider
+
 
 def get_cloud_provider(provider_type: str, **kwargs) -> CloudProvider:
     """

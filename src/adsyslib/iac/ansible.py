@@ -1,7 +1,8 @@
-import logging
 import json
-from typing import List, Dict, Optional, Union, Any
-from adsyslib.core import run, ShellError
+import logging
+from typing import Any, Dict, List
+
+from adsyslib.core import ShellError, run
 
 logger = logging.getLogger(__name__)
 

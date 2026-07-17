@@ -1,9 +1,19 @@
-import typer
 import logging
-from rich.logging import RichHandler
 from typing import Optional
+
+import typer
+
+from adsyslib.cli.commands import (
+    authentik_cmd,
+    cloud_cmd,
+    compliance_cmd,
+    container_cmd,
+    host_cmd,
+    iac_cmd,
+    pkg_cmd,
+    run_cmd,
+)
 from adsyslib.logger import configure_logging
-from adsyslib.cli.commands import run_cmd, pkg_cmd, container_cmd, cloud_cmd, iac_cmd, authentik_cmd, compliance_cmd, host_cmd
 
 app = typer.Typer(
     name="adsys",

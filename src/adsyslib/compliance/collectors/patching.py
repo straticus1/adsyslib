@@ -15,8 +15,8 @@ def _pending_apt(ctx: CollectionContext) -> Dict[str, Any]:
     if not result.ok():
         return {"available": False}
     lines = result.stdout.splitlines()
-    summary_line = next((l for l in lines if "upgraded," in l), "")
-    pending_count = sum(1 for l in lines if l.startswith("Inst "))
+    summary_line = next((line for line in lines if "upgraded," in line), "")
+    pending_count = sum(1 for line in lines if line.startswith("Inst "))
     return {"available": True, "summary": summary_line.strip(), "pending_count": pending_count}
 
 
@@ -25,7 +25,7 @@ def _pending_dnf(ctx: CollectionContext) -> Dict[str, Any]:
     # 0 = up-to-date, 100 = updates available
     if result.exit_code not in (0, 100):
         return {"available": False}
-    lines = [l for l in result.stdout.splitlines() if l.strip()]
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
     return {"available": result.exit_code == 100, "pending_count": len(lines)}
 
 

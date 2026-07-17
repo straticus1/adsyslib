@@ -1,10 +1,10 @@
-import subprocess
 import logging
+import os
 import shlex
+import subprocess
 import time
 from dataclasses import dataclass
-from typing import Optional, Union, List, Dict
-import os
+from typing import Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
