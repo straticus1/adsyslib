@@ -14,12 +14,12 @@ class AnsibleRunner:
         self.inventory = inventory
 
     def run_playbook(
-        self, 
-        playbook_path: str, 
-        extra_vars: Optional[dict[str, Any]] = None, 
+        self,
+        playbook_path: str,
+        extra_vars: Optional[dict[str, Any]] = None,
         tags: Optional[list[str]] = None,
         check: bool = False
-    ):
+    ) -> None:
         """
         Run an Ansible playbook.
         """

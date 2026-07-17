@@ -10,7 +10,7 @@ app = typer.Typer()
 console = Console()
 logger = logging.getLogger(__name__)
 
-def detect_manager():
+def detect_manager() -> Optional[PackageManager]:
     """Auto-detect package manager with user-friendly error."""
     try:
         return get_package_manager()
@@ -23,7 +23,7 @@ def install_packages(
     packages: list[str] = typer.Argument(..., help="List of packages to install"),
     update: bool = typer.Option(False, "--update", "-u", help="Update lists before install"),
     manager: str = typer.Option("auto", help="Force manager: 'apt' or 'dnf'")
-):
+) -> None:
     """
     Install packages idempotently.
     """
@@ -45,10 +45,10 @@ def install_packages(
         console.print("[bold green]Success[/bold green]")
     except Exception as e:
         console.print(f"[bold red]Installation failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 @app.command("remove")
-def remove_packages(packages: list[str]):
+def remove_packages(packages: list[str]) -> None:
     """Uninstall packages."""
     pm = detect_manager()
     if not pm:
@@ -59,4 +59,4 @@ def remove_packages(packages: list[str]):
         console.print("[bold green]Removed successfully[/bold green]")
     except Exception as e:
         console.print(f"[bold red]Removal failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e

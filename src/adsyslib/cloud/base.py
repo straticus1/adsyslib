@@ -14,21 +14,21 @@ class CloudProvider(ABC):
         pass
 
     @abstractmethod
-    def start_instance(self, instance_id: str):
+    def start_instance(self, instance_id: str) -> None:
         """Start a stopped instance."""
         pass
 
     @abstractmethod
-    def stop_instance(self, instance_id: str):
+    def stop_instance(self, instance_id: str) -> None:
         """Stop a running instance."""
         pass
 
     @abstractmethod
-    def upload_file(self, bucket: str, file_path: str, object_name: Optional[str] = None):
+    def upload_file(self, bucket: str, file_path: str, object_name: Optional[str] = None) -> None:
         """Upload a file to object storage."""
         pass
 
     @abstractmethod
-    def download_file(self, bucket: str, object_name: str, file_path: str):
+    def download_file(self, bucket: str, object_name: str, file_path: str) -> None:
         """Download a file from object storage."""
         pass

@@ -65,7 +65,7 @@ class DnsScanner(ServiceScanner):
             "dnssec_validation": "yes" if re.search(r"dnssec-validation\s+yes", text) else "no",
         }
 
-    def _check_conf(self):
+    def _check_conf(self) -> tuple[bool, list[str]]:
         r = self._run(["named-checkconf"])
         ok = r.exit_code == 0
         errors = [ln.strip() for ln in (r.stdout + r.stderr).splitlines() if ln.strip()] if not ok else []

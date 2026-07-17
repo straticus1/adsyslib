@@ -4,7 +4,7 @@ import shlex
 import subprocess
 import time
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ def run(
         duration = time.time() - start_time
         logger.error(f"Command timed out after {duration:.2f}s: {cmd_str}")
         raise
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         duration = time.time() - start_time
         logger.debug(f"Command not found: {cmd_str}")
         result = CommandResult(
@@ -135,7 +135,7 @@ def run(
             exit_code=127, command=cmd_str, duration=duration,
         )
         if check:
-            raise ShellError(result)
+            raise ShellError(result) from e
         return result
 
 class Shell:
@@ -147,11 +147,11 @@ class Shell:
         self.cwd = cwd or os.getcwd()
         self.env = env or os.environ.copy()
 
-    def run(self, cmd: Union[str, list[str]], check: bool = False, timeout: Optional[float] = None, shell: bool = False, **kwargs) -> CommandResult:
+    def run(self, cmd: Union[str, list[str]], check: bool = False, timeout: Optional[float] = None, shell: bool = False, **kwargs: Any) -> CommandResult:
         """Run a command within the context of this shell (cwd/env)."""
         return run(cmd, cwd=self.cwd, env=self.env, check=check, timeout=timeout, shell=shell, **kwargs)
 
-    def cd(self, path: str):
+    def cd(self, path: str) -> None:
         """Change current working directory of the shell wrapper."""
         # Resolve path relative to current self.cwd
         new_path = os.path.abspath(os.path.join(self.cwd, path))
@@ -160,7 +160,7 @@ class Shell:
         self.cwd = new_path
         logger.debug(f"Shell CWD changed to: {self.cwd}")
 
-    def setenv(self, key: str, value: str):
+    def setenv(self, key: str, value: str) -> None:
         self.env[key] = value
 
     def getenv(self, key: str, default: Optional[str] = None) -> Optional[str]:
@@ -179,7 +179,7 @@ class Shell:
     def __enter__(self) -> "Shell":
         return self.connect()
 
-    def __exit__(self, *_) -> None:
+    def __exit__(self, *_: object) -> None:
         self.disconnect()
 
     # ------------------------------------------------------------------

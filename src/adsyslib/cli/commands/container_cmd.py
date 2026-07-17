@@ -9,7 +9,7 @@ from adsyslib.container.manager import DockerManager
 app = typer.Typer()
 console = Console()
 
-def get_manager():
+def get_manager() -> DockerManager:
     dm = DockerManager()
     if not dm.client:
         console.print("[bold red]Docker daemon not reachable.[/bold red]")
@@ -24,7 +24,7 @@ def run_container(
     env: Optional[list[str]] = typer.Option(None, help="Env vars KEY=VALUE"),
     detach: bool = typer.Option(True, help="Run in background"),
     wait_log: Optional[str] = typer.Option(None, help="Wait for specific log pattern")
-):
+) -> None:
     """Run a docker container."""
     dm = get_manager()
     
@@ -56,17 +56,17 @@ def run_container(
         console.print(f"[bold green]Started container:[/bold green] {container.short_id} ({container.name})")
     except Exception as e:
         console.print(f"[bold red]Failed to start container:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 @app.command("stop")
-def stop_container(name: str):
+def stop_container(name: str) -> None:
     """Stop a container."""
     dm = get_manager()
     dm.stop_container(name)
     console.print(f"[bold green]Stopped {name}[/bold green]")
 
 @app.command("ps")
-def list_containers():
+def list_containers() -> None:
     """List running containers."""
     dm = get_manager()
     containers = dm.client.containers.list()
@@ -88,7 +88,7 @@ def generate_dockerfile(
     distro: str = typer.Option("debian", help="Distro family: debian, rhel, alpine"),
     packages: list[str] = typer.Option([], help="Packages to install"),
     out: str = typer.Option("Dockerfile", help="Output path")
-):
+) -> None:
     """Generate a production-ready Dockerfile with installed packages."""
     from adsyslib.container.builder import PackageAwareBuilder
     

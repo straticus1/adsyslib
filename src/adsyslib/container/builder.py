@@ -37,7 +37,7 @@ class DockerfileBuilder:
     def build(self) -> str:
         return "\n".join(self.lines) + "\n"
 
-    def write(self, path: str = "Dockerfile"):
+    def write(self, path: str = "Dockerfile") -> None:
         with open(path, "w") as f:
             f.write(self.build())
 

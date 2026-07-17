@@ -181,7 +181,7 @@ class KubernetesClusterScanner:
         self.namespaces = namespaces  # None = all namespaces
         self._kubectl = kubectl_cmd
 
-    def _kubectl_json(self, *args) -> Optional[Any]:
+    def _kubectl_json(self, *args: str) -> Optional[Any]:
         cmd = [self._kubectl]
         if self.context:
             cmd += ["--context", self.context]

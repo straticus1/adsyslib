@@ -3,6 +3,7 @@ import sys
 import tempfile
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import IO, Optional
 
 
 class IOCatcher:
@@ -11,17 +12,17 @@ class IOCatcher:
     allowing it to catch output even from C extensions or subprocesses
     that inherit FDs (though subprocesses usually need their own handling).
     """
-    def __init__(self, capture_stdout: bool = True, capture_stderr: bool = True):
+    def __init__(self, capture_stdout: bool = True, capture_stderr: bool = True) -> None:
         self.capture_stdout = capture_stdout
         self.capture_stderr = capture_stderr
-        self._stdout_fd = None
-        self._stderr_fd = None
-        self._saved_stdout_fd = None
-        self._saved_stderr_fd = None
-        self._temp_stdout = None
-        self._temp_stderr = None
+        self._stdout_fd: Optional[int] = None
+        self._stderr_fd: Optional[int] = None
+        self._saved_stdout_fd: Optional[int] = None
+        self._saved_stderr_fd: Optional[int] = None
+        self._temp_stdout: Optional[IO[bytes]] = None
+        self._temp_stderr: Optional[IO[bytes]] = None
 
-    def __enter__(self):
+    def __enter__(self) -> "IOCatcher":
         # Save original file descriptors
         if self.capture_stdout:
             self._saved_stdout_fd = os.dup(sys.stdout.fileno())
@@ -41,16 +42,16 @@ class IOCatcher:
 
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
         try:
             # Restore stdout
-            if self.capture_stdout and self._saved_stdout_fd is not None:
+            if self.capture_stdout and self._saved_stdout_fd is not None and self._stdout_fd is not None:
                 sys.stdout.flush()
                 os.dup2(self._saved_stdout_fd, self._stdout_fd)
                 os.close(self._saved_stdout_fd)
         finally:
             # Restore stderr (ensure this runs even if stdout restoration fails)
-            if self.capture_stderr and self._saved_stderr_fd is not None:
+            if self.capture_stderr and self._saved_stderr_fd is not None and self._stderr_fd is not None:
                 try:
                     sys.stderr.flush()
                     os.dup2(self._saved_stderr_fd, self._stderr_fd)

@@ -46,10 +46,10 @@ class DockerShell:
     def __enter__(self) -> "DockerShell":
         return self.connect()
 
-    def __exit__(self, *_) -> None:
+    def __exit__(self, *_: object) -> None:
         self.disconnect()
 
-    def run(self, cmd, check: bool = False, **_) -> CommandResult:
+    def run(self, cmd: Any, check: bool = False, **_: Any) -> CommandResult:
         if isinstance(cmd, list):
             full = [self._docker, "exec", self.container] + [str(c) for c in cmd]
         else:

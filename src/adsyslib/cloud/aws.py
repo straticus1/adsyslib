@@ -45,19 +45,19 @@ class AWSProvider(CloudProvider):
                 })
         return instances
 
-    def start_instance(self, instance_id: str):
+    def start_instance(self, instance_id: str) -> None:
         logger.info(f"Starting AWS instance {instance_id}")
         self.ec2.start_instances(InstanceIds=[instance_id])
 
-    def stop_instance(self, instance_id: str):
+    def stop_instance(self, instance_id: str) -> None:
         logger.info(f"Stopping AWS instance {instance_id}")
         self.ec2.stop_instances(InstanceIds=[instance_id])
 
-    def upload_file(self, bucket: str, file_path: str, object_name: Optional[str] = None):
+    def upload_file(self, bucket: str, file_path: str, object_name: Optional[str] = None) -> None:
         object_name = object_name or os.path.basename(file_path)
         logger.info(f"Uploading {file_path} to s3://{bucket}/{object_name}")
         self.s3.upload_file(file_path, bucket, object_name)
 
-    def download_file(self, bucket: str, object_name: str, file_path: str):
+    def download_file(self, bucket: str, object_name: str, file_path: str) -> None:
         logger.info(f"Downloading s3://{bucket}/{object_name} to {file_path}")
         self.s3.download_file(bucket, object_name, file_path)

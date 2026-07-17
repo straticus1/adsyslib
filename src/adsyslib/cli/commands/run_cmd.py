@@ -13,7 +13,7 @@ def execute(
     cwd: str = typer.Option(None, help="Working directory"),
     check: bool = typer.Option(True, help="Fail on non-zero exit code"),
     capture: bool = typer.Option(False, help="Capture output instead of streaming to logs")
-):
+) -> None:
     """
     Run a shell command safely.
     """
@@ -36,4 +36,4 @@ def execute(
 
     except ShellError as e:
         console.print(f"[bold red]Error running command:[/bold red] {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e

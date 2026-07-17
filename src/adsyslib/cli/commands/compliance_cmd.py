@@ -42,7 +42,7 @@ def generate(
         None, "--drift-output",
         help="Where to save the drift report (default: drift_<output>)",
     ),
-):
+) -> None:
     """Collect system evidence and generate a structured audit package.
 
     Run locally or against a remote host:
@@ -128,7 +128,7 @@ def compare(
     baseline: Path = typer.Argument(..., help="Path to baseline audit package JSON"),
     current: Path = typer.Argument(..., help="Path to current audit package JSON"),
     output: Path = typer.Option("drift_report.json", "--output", "-o"),
-):
+) -> None:
     """Diff two saved audit packages and report what changed."""
     from adsyslib.compliance import compare_packages, load_package
 

@@ -36,7 +36,7 @@ app.add_typer(host_cmd.app, name="host", help="SSH to hosts and scan services")
 def main(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose debug logging"),
     log_file: Optional[str] = typer.Option(None, "--log-file", help="Path to audit log file")
-):
+) -> None:
     """
     Global configuration for adsys CLI.
     """

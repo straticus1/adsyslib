@@ -24,7 +24,7 @@ class MysqlScanner(ServiceScanner):
             metrics={"service_name": service},
         )
 
-    def _detect_service(self):
+    def _detect_service(self) -> tuple[str, bool]:
         for name in ("mysql", "mariadb", "mysqld"):
             if self._is_active(name):
                 return name, True

@@ -66,10 +66,10 @@ class KubeShell:
     def __enter__(self) -> "KubeShell":
         return self.connect()
 
-    def __exit__(self, *_) -> None:
+    def __exit__(self, *_: object) -> None:
         self.disconnect()
 
-    def run(self, cmd, check: bool = False, **_) -> CommandResult:
+    def run(self, cmd: Any, check: bool = False, **_: Any) -> CommandResult:
         if isinstance(cmd, list):
             full = self._base() + [str(c) for c in cmd]
         else:

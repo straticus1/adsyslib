@@ -27,6 +27,7 @@ import json
 import logging
 from typing import Any, Optional
 
+from adsyslib.core import CommandResult
 from adsyslib.remote import RemoteShell
 
 from .scanners import (
@@ -109,14 +110,14 @@ class HostSession:
     def __enter__(self) -> "HostSession":
         return self.connect()
 
-    def __exit__(self, *_) -> None:
+    def __exit__(self, *_: object) -> None:
         self.disconnect()
 
     # ------------------------------------------------------------------
     # Raw execution
     # ------------------------------------------------------------------
 
-    def run(self, cmd, check: bool = False):
+    def run(self, cmd: Any, check: bool = False) -> CommandResult:
         return self._shell.run(cmd, check=check)
 
     def read_text(self, path: str) -> Optional[str]:
@@ -126,7 +127,7 @@ class HostSession:
     # Scanner access (lazy, cached)
     # ------------------------------------------------------------------
 
-    def _scanner(self, name: str):
+    def _scanner(self, name: str) -> Any:
         if name not in self._scanners:
             cls = _SCANNER_REGISTRY.get(name)
             if cls is None:

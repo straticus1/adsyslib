@@ -27,7 +27,7 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 
-def _scan_one(session, services: Optional[list[str]]):
+def _scan_one(session: Any, services: Optional[list[str]]) -> tuple[str, Any, Optional[str]]:
     """Connect, scan, disconnect — designed to run in a thread."""
     try:
         session.connect()

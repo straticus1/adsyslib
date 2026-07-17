@@ -251,7 +251,7 @@ class KeycloakToAuthentikMigrator:
 
         return report
 
-    def generate_migration_report(self, output_file: str = "migration_report.json"):
+    def generate_migration_report(self, output_file: str = "migration_report.json") -> None:
         """Save migration report to a file."""
         import json
 

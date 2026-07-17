@@ -34,7 +34,7 @@ class AuthentikClient:
         })
         self.session.verify = verify_ssl
 
-    def _request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
+    def _request(self, method: str, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make an API request."""
         url = f"{self.base_url}/api/v3/{endpoint.lstrip('/')}"
         logger.debug(f"Authentik API: {method} {url}")
@@ -95,17 +95,17 @@ class AuthentikClient:
         logger.info(f"Creating Authentik user: {username}")
         return self._request("POST", "/core/users/", json=data)
 
-    def update_user(self, user_id: int, **kwargs) -> dict[str, Any]:
+    def update_user(self, user_id: int, **kwargs: Any) -> dict[str, Any]:
         """Update a user's attributes."""
         logger.info(f"Updating Authentik user: {user_id}")
         return self._request("PATCH", f"/core/users/{user_id}/", json=kwargs)
 
-    def delete_user(self, user_id: int):
+    def delete_user(self, user_id: int) -> None:
         """Delete a user."""
         logger.info(f"Deleting Authentik user: {user_id}")
         self._request("DELETE", f"/core/users/{user_id}/")
 
-    def set_user_password(self, user_id: int, password: str):
+    def set_user_password(self, user_id: int, password: str) -> None:
         """Set a user's password."""
         logger.info(f"Setting password for user: {user_id}")
         self._request("POST", f"/core/users/{user_id}/set_password/", json={"password": password})
@@ -144,12 +144,12 @@ class AuthentikClient:
         logger.info(f"Creating Authentik group: {name}")
         return self._request("POST", "/core/groups/", json=data)
 
-    def delete_group(self, group_id: str):
+    def delete_group(self, group_id: str) -> None:
         """Delete a group."""
         logger.info(f"Deleting Authentik group: {group_id}")
         self._request("DELETE", f"/core/groups/{group_id}/")
 
-    def add_user_to_group(self, user_id: int, group_id: str):
+    def add_user_to_group(self, user_id: int, group_id: str) -> None:
         """Add a user to a group."""
         user = self.get_user(user_id)
         groups = user.get("groups", [])
@@ -158,7 +158,7 @@ class AuthentikClient:
             self.update_user(user_id, groups=groups)
             logger.info(f"Added user {user_id} to group {group_id}")
 
-    def remove_user_from_group(self, user_id: int, group_id: str):
+    def remove_user_from_group(self, user_id: int, group_id: str) -> None:
         """Remove a user from a group."""
         user = self.get_user(user_id)
         groups = user.get("groups", [])
@@ -200,7 +200,7 @@ class AuthentikClient:
         logger.info(f"Creating Authentik application: {name}")
         return self._request("POST", "/core/applications/", json=data)
 
-    def delete_application(self, slug: str):
+    def delete_application(self, slug: str) -> None:
         """Delete an application."""
         logger.info(f"Deleting Authentik application: {slug}")
         self._request("DELETE", f"/core/applications/{slug}/")

@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Optional
+from typing import Any, Optional
 
 try:
     import pexpect
@@ -24,9 +24,9 @@ class InteractiveSession:
         self.args = args or []
         self.timeout = timeout
         self.log_output = log_output
-        self.child = None
+        self.child: Any = None
 
-    def start(self):
+    def start(self) -> None:
         cmd_line = f"{self.command} {' '.join(self.args)}"
         logger.info(f"Starting interactive session: {cmd_line}")
         # Spawn with encoding to handle modern CLI tools
@@ -34,7 +34,7 @@ class InteractiveSession:
         if self.log_output:
             self.child.logfile_read = sys.stdout
 
-    def expect_and_send(self, pattern: str, response: str, exact: bool = False):
+    def expect_and_send(self, pattern: str, response: str, exact: bool = False) -> None:
         """
         Wait for a pattern and send a response.
         
@@ -54,20 +54,21 @@ class InteractiveSession:
             
             logger.debug(f"Matched pattern '{pattern}', sending response.")
             self.child.sendline(response)
-        except pexpect.TIMEOUT:
+        except pexpect.TIMEOUT as e:
             logger.error(f"Timeout waiting for pattern '{pattern}'")
-            raise TimeoutError(f"Timeout waiting for pattern '{pattern}'")
-        except pexpect.EOF:
+            raise TimeoutError(f"Timeout waiting for pattern '{pattern}'") from e
+        except pexpect.EOF as e:
             logger.error("Process exited unexpectedly while waiting for input.")
-            raise EOFError("Process exited unexpectedly")
+            raise EOFError("Process exited unexpectedly") from e
 
-    def wait_for_completion(self):
+    def wait_for_completion(self) -> Optional[int]:
         if self.child:
             self.child.expect(pexpect.EOF)
             self.child.close()
             return self.child.exitstatus
+        return None
 
-    def auto_interact(self, interactions: list[tuple[str, str]]):
+    def auto_interact(self, interactions: list[tuple[str, str]]) -> None:
         """
         Handle a sequence of interactions.
         interactions: List of (pattern, response) tuples.

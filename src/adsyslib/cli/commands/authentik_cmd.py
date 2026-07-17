@@ -31,7 +31,7 @@ def get_client() -> AuthentikClient:
 # ==================== USERS ====================
 
 @app.command("list-users")
-def list_users(search: Optional[str] = typer.Option(None, help="Search filter")):
+def list_users(search: Optional[str] = typer.Option(None, help="Search filter")) -> None:
     """List Authentik users."""
     client = get_client()
     users = client.list_users(search=search)
@@ -59,7 +59,7 @@ def create_user(
     name: str = typer.Argument(..., help="Display name"),
     email: Optional[str] = typer.Option(None, help="Email address"),
     password: Optional[str] = typer.Option(None, help="Initial password")
-):
+) -> None:
     """Create a new Authentik user."""
     client = get_client()
     try:
@@ -71,10 +71,10 @@ def create_user(
             console.print("[green]Password set.[/green]")
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 @app.command("delete-user")
-def delete_user(user_id: int = typer.Argument(..., help="User ID")):
+def delete_user(user_id: int = typer.Argument(..., help="User ID")) -> None:
     """Delete an Authentik user."""
     client = get_client()
     try:
@@ -82,12 +82,12 @@ def delete_user(user_id: int = typer.Argument(..., help="User ID")):
         console.print(f"[bold green]Deleted user {user_id}[/bold green]")
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 # ==================== GROUPS ====================
 
 @app.command("list-groups")
-def list_groups(search: Optional[str] = typer.Option(None, help="Search filter")):
+def list_groups(search: Optional[str] = typer.Option(None, help="Search filter")) -> None:
     """List Authentik groups."""
     client = get_client()
     groups = client.list_groups(search=search)
@@ -111,7 +111,7 @@ def list_groups(search: Optional[str] = typer.Option(None, help="Search filter")
 def create_group(
     name: str = typer.Argument(..., help="Group name"),
     superuser: bool = typer.Option(False, help="Grant superuser permissions")
-):
+) -> None:
     """Create a new Authentik group."""
     client = get_client()
     try:
@@ -119,12 +119,12 @@ def create_group(
         console.print(f"[bold green]Created group:[/bold green] {group.get('name')} (UUID: {group.get('pk')})")
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 # ==================== APPLICATIONS ====================
 
 @app.command("list-apps")
-def list_apps():
+def list_apps() -> None:
     """List Authentik applications."""
     client = get_client()
     apps = client.list_applications()
@@ -149,7 +149,7 @@ def create_app(
     name: str = typer.Argument(..., help="Application name"),
     slug: str = typer.Argument(..., help="URL-safe slug"),
     launch_url: Optional[str] = typer.Option(None, help="Launch URL")
-):
+) -> None:
     """Create a new Authentik application."""
     client = get_client()
     try:
@@ -157,12 +157,12 @@ def create_app(
         console.print(f"[bold green]Created application:[/bold green] {app_obj.get('name')} ({app_obj.get('slug')})")
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 # ==================== HEALTH ====================
 
 @app.command("health")
-def health():
+def health() -> None:
     """Check Authentik health status."""
     client = get_client()
     if client.health_check():
@@ -183,7 +183,7 @@ def oauth_create(
     client_type: str = typer.Option("confidential", "--type", help="Client type: confidential or public"),
     container: str = typer.Option("authentik-server", "--container", help="Docker container name"),
     output_env: Optional[str] = typer.Option(None, "--output-env", help="Output .env file with credentials")
-):
+) -> None:
     """Create an OAuth2 provider via Django ORM."""
     if not app_slug:
         app_slug = app_name.lower().replace(' ', '-')
@@ -214,7 +214,7 @@ def oauth_create(
             
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command("oauth-bulk-create")
@@ -223,7 +223,7 @@ def oauth_bulk_create(
     container: str = typer.Option("authentik-server", "--container", help="Docker container name"),
     output_env: Optional[str] = typer.Option(".env", "--output-env", help="Output .env file"),
     output_json: Optional[str] = typer.Option(None, "--output-json", help="Output JSON file with all secrets")
-):
+) -> None:
     """Create multiple OAuth providers from JSON config."""
     try:
         configs = load_providers_from_json(config_file)
@@ -278,13 +278,13 @@ def oauth_bulk_create(
             
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command("oauth-list")
 def oauth_list(
     container: str = typer.Option("authentik-server", "--container", help="Docker container name")
-):
+) -> None:
     """List all OAuth2 providers."""
     manager = AuthentikOAuthManager(container_name=container)
     
@@ -310,7 +310,7 @@ def oauth_list(
         
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command("oauth-get")
@@ -318,7 +318,7 @@ def oauth_get(
     client_id: str = typer.Argument(..., help="OAuth client ID"),
     container: str = typer.Option("authentik-server", "--container", help="Docker container name"),
     show_secret: bool = typer.Option(False, "--show-secret", help="Show client secret")
-):
+) -> None:
     """Get details of an OAuth provider."""
     manager = AuthentikOAuthManager(container_name=container)
     
@@ -338,7 +338,7 @@ def oauth_get(
             
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @app.command("oauth-delete")
@@ -346,7 +346,7 @@ def oauth_delete(
     client_id: str = typer.Argument(..., help="OAuth client ID to delete"),
     container: str = typer.Option("authentik-server", "--container", help="Docker container name"),
     confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation")
-):
+) -> None:
     """Delete an OAuth2 provider."""
     if not confirm:
         response = typer.confirm(f"Are you sure you want to delete OAuth provider '{client_id}'?")
@@ -361,4 +361,4 @@ def oauth_delete(
         console.print(f"[bold green]✓ Deleted OAuth provider: {client_id}[/bold green]")
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e

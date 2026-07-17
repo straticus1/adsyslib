@@ -30,7 +30,7 @@ class DockerManager:
             logger.warning(f"Could not connect to Docker: {e}")
             self.client = None
 
-    def _check_client(self):
+    def _check_client(self) -> None:
         if not self.client:
             raise RuntimeError("Docker client not initialized (daemon might be down).")
 
@@ -108,7 +108,7 @@ class DockerManager:
 
         return container
 
-    def stop_container(self, name_or_id: str, timeout: int = 10):
+    def stop_container(self, name_or_id: str, timeout: int = 10) -> None:
         self._check_client()
         try:
             container = self.client.containers.get(name_or_id)

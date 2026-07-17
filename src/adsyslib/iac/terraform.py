@@ -1,7 +1,7 @@
 import json
 import logging
 import sys
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from adsyslib.core import CommandResult, ShellError, run
 
@@ -23,7 +23,7 @@ class TerraformRunner:
             logger.error(f"Terraform command failed: {e}")
             raise
 
-    def init(self, backend_config: Optional[dict[str, str]] = None):
+    def init(self, backend_config: Optional[dict[str, str]] = None) -> None:
         """Run terraform init."""
         args = ["init", "-input=false"]
         if backend_config:
@@ -44,7 +44,7 @@ class TerraformRunner:
         
         return self._run_tf(args).stdout
 
-    def apply(self, plan_file: Optional[str] = None, auto_approve: bool = True):
+    def apply(self, plan_file: Optional[str] = None, auto_approve: bool = True) -> None:
         args = ["apply", "-input=false", "-no-color"]
         if auto_approve:
             args.append("-auto-approve")
@@ -64,7 +64,7 @@ class TerraformRunner:
             return json.loads(res.stdout)
         return {"raw": res.stdout}
 
-def external_data_handler(handler_func):
+def external_data_handler(handler_func: Callable[[Any], Any]) -> None:
     """
     Decorator/Helper to create a script that works as a Terraform 'external' data source.
     Reads JSON from stdin, calls handler_func(query_dict), writes JSON to stdout.

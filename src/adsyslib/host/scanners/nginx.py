@@ -30,7 +30,7 @@ class NginxScanner(ServiceScanner):
             },
         )
 
-    def _config_test(self):
+    def _config_test(self) -> tuple[bool, list[str]]:
         r = self._run(["nginx", "-t"])
         # nginx writes to stderr even on success
         output = (r.stdout + r.stderr).strip()

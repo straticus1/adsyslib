@@ -49,7 +49,7 @@ class KeycloakClient:
         if username and password:
             self._authenticate()
 
-    def _authenticate(self):
+    def _authenticate(self) -> None:
         """Authenticate and get access token."""
         url = f"{self.base_url}/realms/master/protocol/openid-connect/token"
         data = {
@@ -66,7 +66,7 @@ class KeycloakClient:
         self.token = response.json()["access_token"]
         self.session.headers.update({"Authorization": f"Bearer {self.token}"})
 
-    def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+    def _request(self, method: str, endpoint: str, **kwargs: Any) -> Any:
         """Make an authenticated API request."""
         url = f"{self.base_url}/admin/realms/{self.realm}/{endpoint.lstrip('/')}"
         logger.debug(f"Keycloak API: {method} {url}")

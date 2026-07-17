@@ -58,15 +58,15 @@ class OracleProvider(CloudProvider):
             })
         return result
 
-    def start_instance(self, instance_id: str):
+    def start_instance(self, instance_id: str) -> None:
         logger.info(f"Starting OCI instance {instance_id}")
         self.compute_client.instance_action(instance_id, "START")
 
-    def stop_instance(self, instance_id: str):
+    def stop_instance(self, instance_id: str) -> None:
         logger.info(f"Stopping OCI instance {instance_id}")
         self.compute_client.instance_action(instance_id, "STOP")
 
-    def upload_file(self, bucket: str, file_path: str, object_name: Optional[str] = None):
+    def upload_file(self, bucket: str, file_path: str, object_name: Optional[str] = None) -> None:
         object_name = object_name or os.path.basename(file_path)
         namespace = self.object_storage_client.get_namespace().data
         logger.info(f"Uploading {file_path} to OCI bucket {bucket}")
@@ -79,7 +79,7 @@ class OracleProvider(CloudProvider):
                 f
             )
 
-    def download_file(self, bucket: str, object_name: str, file_path: str):
+    def download_file(self, bucket: str, object_name: str, file_path: str) -> None:
         namespace = self.object_storage_client.get_namespace().data
         logger.info(f"Downloading OCI object {object_name} from {bucket}")
         

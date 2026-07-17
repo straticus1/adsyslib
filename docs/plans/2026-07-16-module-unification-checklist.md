@@ -46,9 +46,15 @@ exemplar; remaining modules follow the same steps.
 | authentik (client, oauth, cmd) | ✅ | not measured | steps 2–8 pending |
 | keycloak (client, migrate) | ✅ | not measured | steps 2–8 pending |
 
-**The mypy ratchet list is empty (2026-07-16)** — `mypy src/adsyslib` is clean with no
-grandfathered modules. Remaining type-strictness ratchets: untyped defs (step 2) and the
-global `implicit_optional` flag.
+**All type-strictness ratchets closed (2026-07-16):**
+- mypy `ignore_errors` list: empty — every module type-checks.
+- `disallow_untyped_defs = true` globally — every def is fully annotated.
+- `implicit_optional` dropped — all Optionals explicit (RUF013 enforced).
+- ruff gate: `E, F, I, UP, B, RUF013` (B008 ignored in `cli/**` — Typer idiom).
+
+Steps 1–5 of the checklist are done codebase-wide. Remaining per-module work is
+steps 6–8 (hermetic test coverage, docstrings, CLI parity) for the periphery
+(packages, container, cloud, iac, k8s, authentik, keycloak, interact).
 
 Ruff `UP` rules are now in the gate codebase-wide; `B` (bugbear) is the next rule-set
 ratchet. Global `implicit_optional = true` in mypy config is the other standing ratchet —

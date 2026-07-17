@@ -13,7 +13,7 @@ console = Console()
 def tf_plan(
     dir: str = typer.Option(".", help="Terraform working directory"),
     out: Optional[str] = typer.Option(None, help="Output plan file")
-):
+) -> None:
     """Run terraform plan."""
     tf = TerraformRunner(dir)
     try:
@@ -22,13 +22,13 @@ def tf_plan(
         console.print(output)
     except Exception as e:
         console.print(f"[bold red]Plan failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 @app.command("tf-apply")
 def tf_apply(
     dir: str = typer.Option(".", help="Terraform working directory"),
     plan: Optional[str] = typer.Option(None, help="Plan file to apply")
-):
+) -> None:
     """Run terraform apply."""
     tf = TerraformRunner(dir)
     try:
@@ -37,14 +37,14 @@ def tf_apply(
         console.print("[bold green]Apply successful[/bold green]")
     except Exception as e:
         console.print(f"[bold red]Apply failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 @app.command("ansible-run")
 def ansible_run(
     playbook: str = typer.Argument(..., help="Path to playbook"),
     inventory: Optional[str] = typer.Option(None, help="Inventory file"),
     check: bool = typer.Option(False, help="Check mode (dry run)")
-):
+) -> None:
     """Run ansible playbook."""
     runner = AnsibleRunner(inventory=inventory)
     try:
@@ -53,4 +53,4 @@ def ansible_run(
         console.print("[bold green]Playbook completed[/bold green]")
     except Exception as e:
         console.print(f"[bold red]Playbook failed:[/bold red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e

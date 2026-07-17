@@ -279,7 +279,7 @@ except OAuth2Provider.DoesNotExist:
 '''
         return self._docker_exec_python(script)
 
-    def delete_provider(self, client_id: str):
+    def delete_provider(self, client_id: str) -> None:
         """
         Delete an OAuth2 provider.
 
@@ -340,7 +340,7 @@ def load_providers_from_json(json_file: str) -> list[OAuthProviderConfig]:
     return configs
 
 
-def generate_env_file(results: list[dict[str, Any]], output_file: str = ".env"):
+def generate_env_file(results: list[dict[str, Any]], output_file: str = ".env") -> None:
     """
     Generate .env file with OAuth credentials.
 

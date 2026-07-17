@@ -28,7 +28,7 @@ def scan(
     ),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Save JSON report to file"),
     fmt: str = typer.Option("text", "--format", "-f", help="Output format: text or json"),
-):
+) -> None:
     """
     Scan service health on a host, Docker container, or Kubernetes pod.
 
@@ -77,7 +77,7 @@ def scan(
             report = h.scan_all(services=services or None)
     except Exception as e:
         typer.echo(f"Failed: {e}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
     if fmt == "json":
         typer.echo(report.to_json())
@@ -99,7 +99,7 @@ def cluster(
     namespaces: list[str] = typer.Option([], "--namespace", "-n", help="Namespace(s) to scan. Omit for all."),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Save JSON report to file"),
     fmt: str = typer.Option("text", "--format", "-f", help="Output format: text or json"),
-):
+) -> None:
     """
     Scan a Kubernetes cluster at the API level.
 
@@ -125,7 +125,7 @@ def cluster(
         report = scanner.scan()
     except Exception as e:
         typer.echo(f"Cluster scan failed: {e}", err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
     if fmt == "json":
         typer.echo(report.to_json())
@@ -154,7 +154,7 @@ def fleet(
     workers: int = typer.Option(10, "--workers", "-w", help="Parallel connections"),
     output: Optional[str] = typer.Option(None, "--output", "-o"),
     fmt: str = typer.Option("text", "--format", "-f", help="text or json"),
-):
+) -> None:
     """
     Scan a mixed fleet of SSH hosts, Docker containers, and Kubernetes pods in parallel.
 

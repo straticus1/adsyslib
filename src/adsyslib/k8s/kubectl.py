@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Optional
 
-from adsyslib.core import Shell
+from adsyslib.core import CommandResult, Shell
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ class KubectlRunner:
         name: str,
         namespace: Optional[str] = None,
         force: bool = False,
-    ):
+    ) -> str:
         """
         Delete a resource.
 
@@ -278,7 +278,7 @@ class KubectlRunner:
         ports: str,
         namespace: Optional[str] = None,
         background: bool = True,
-    ):
+    ) -> CommandResult:
         """
         Forward port(s) from a resource.
 
@@ -365,7 +365,7 @@ class KubectlRunner:
         """Get current context."""
         return self.run_command(["config", "current-context"]).strip()
 
-    def use_context(self, context: str):
+    def use_context(self, context: str) -> None:
         """Switch to a different context."""
         logger.info(f"Switching to context: {context}")
         self.run_command(["config", "use-context", context])

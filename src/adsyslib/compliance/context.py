@@ -44,7 +44,7 @@ class RemoteContext:
         _warn("RemoteContext", "pass the RemoteShell directly")
         self._shell = shell
 
-    def run(self, cmd, check: bool = False, **kwargs) -> CommandResult:
+    def run(self, cmd: Any, check: bool = False, **kwargs: Any) -> CommandResult:
         return self._shell.run(cmd, check=check)
 
     def read_text(self, path: str) -> Optional[str]:
@@ -62,7 +62,7 @@ class RemoteContext:
     def path_stat(self, path: str) -> Optional[dict[str, Any]]:
         return self._shell.path_stat(path)
 
-    def connect(self):
+    def connect(self) -> Any:
         return self._shell.connect()
 
     def disconnect(self) -> None:

@@ -6,6 +6,8 @@ Each scanner wraps a RemoteShell and implements scan() → ScanResult.
 from dataclasses import dataclass, field
 from typing import Any
 
+from adsyslib.core import CommandResult
+
 
 @dataclass
 class ScanResult:
@@ -38,16 +40,16 @@ class ServiceScanner:
     """
     service_name: str = ""
 
-    def __init__(self, shell):
+    def __init__(self, shell: Any) -> None:
         self._shell = shell
 
-    def _run(self, cmd, check: bool = False):
+    def _run(self, cmd: Any, check: bool = False) -> CommandResult:
         return self._shell.run(cmd, check=check)
 
     def _is_active(self, service: str) -> bool:
         return self._run(["systemctl", "is-active", service]).stdout.strip() == "active"
 
-    def _version(self, cmd) -> str:
+    def _version(self, cmd: Any) -> str:
         r = self._run(cmd)
         return r.stdout.splitlines()[0].strip() if r.ok() and r.stdout else ""
 

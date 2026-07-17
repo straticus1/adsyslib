@@ -9,7 +9,7 @@ Usage:
 import logging
 import stat
 import time
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from adsyslib.core import CommandResult, ShellConnectionError, ShellError
 
@@ -55,7 +55,7 @@ class RemoteShell:
                 "paramiko is required for remote collection:\n"
                 "  pip install adsyslib[remote]\n"
                 "  or: pip install paramiko"
-            )
+            ) from None
 
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -89,7 +89,7 @@ class RemoteShell:
     def __enter__(self) -> "RemoteShell":
         return self.connect()
 
-    def __exit__(self, *_) -> None:
+    def __exit__(self, *_: object) -> None:
         self.disconnect()
 
     def _require_client(self) -> "paramiko.SSHClient":
@@ -106,7 +106,7 @@ class RemoteShell:
     # Command execution
     # ------------------------------------------------------------------
 
-    def run(self, cmd, check: bool = False, **_kwargs) -> CommandResult:
+    def run(self, cmd: Union[str, list[str]], check: bool = False, **_kwargs: Any) -> CommandResult:
         if isinstance(cmd, list):
             # Quote arguments that contain spaces
             cmd_str = " ".join(f"'{c}'" if " " in str(c) else str(c) for c in cmd)
