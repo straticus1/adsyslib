@@ -2,7 +2,10 @@ import logging
 import os
 from typing import Any, Dict, List
 
-import boto3
+try:
+    import boto3
+except ImportError:  # optional dependency — pip install 'adsyslib[cloud]'
+    boto3 = None
 
 from adsyslib.cloud.base import CloudProvider
 
@@ -13,6 +16,11 @@ class AWSProvider(CloudProvider):
     AWS Implementation using boto3.
     """
     def __init__(self, region_name: str = None, profile_name: str = None):
+        if boto3 is None:
+            raise ImportError(
+                "boto3 is required for AWSProvider:\n"
+                "  pip install 'adsyslib[cloud]'"
+            )
         self.session = boto3.Session(region_name=region_name, profile_name=profile_name)
         self.ec2 = self.session.client("ec2")
         self.s3 = self.session.client("s3")

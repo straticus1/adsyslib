@@ -2,9 +2,13 @@ import logging
 import time
 from typing import Dict, List, Optional, Union
 
-import docker
-from docker.errors import DockerException, NotFound
-from docker.models.containers import Container
+try:
+    import docker
+    from docker.errors import DockerException, NotFound
+    from docker.models.containers import Container
+except ImportError:  # optional dependency — pip install 'adsyslib[container]'
+    docker = None
+    DockerException = NotFound = Container = None
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +18,11 @@ class DockerManager:
     Handles connection, running containers with health checks, and cleanup.
     """
     def __init__(self, base_url: str = None):
+        if docker is None:
+            raise ImportError(
+                "docker (docker-py) is required for DockerManager:\n"
+                "  pip install 'adsyslib[container]'"
+            )
         try:
             self.client = docker.DockerClient(base_url=base_url or "unix://var/run/docker.sock")
             self.client.ping()

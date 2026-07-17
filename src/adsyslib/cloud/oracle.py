@@ -2,7 +2,10 @@ import logging
 import os
 from typing import Any, Dict, List
 
-import oci
+try:
+    import oci
+except ImportError:  # optional dependency — pip install 'adsyslib[cloud]'
+    oci = None
 
 from adsyslib.cloud.base import CloudProvider
 
@@ -14,6 +17,11 @@ class OracleProvider(CloudProvider):
     Requires ~/.oci/config or standard OCI environment variables.
     """
     def __init__(self, config_file: str = None, profile: str = "DEFAULT"):
+        if oci is None:
+            raise ImportError(
+                "oci is required for OracleProvider:\n"
+                "  pip install 'adsyslib[cloud]'"
+            )
         if config_file:
             self.config = oci.config.from_file(file_location=config_file, profile_name=profile)
         else:

@@ -17,11 +17,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "boto3>=1.34.0",
-    "oci>=2.119.0",
-    "docker>=7.0.0",
-    "pexpect>=4.9.0",
-    "sh>=2.0.0",
     "requests>=2.31.0",
     "rich>=13.7.0",  # For pretty output/logging
     "typer>=0.9.0",  # For CLI
@@ -31,6 +26,19 @@ dependencies = [
 [project.optional-dependencies]
 remote = [
     "paramiko>=3.0",
+]
+cloud = [
+    "boto3>=1.34.0",
+    "oci>=2.119.0",
+]
+container = [
+    "docker>=7.0.0",
+]
+interact = [
+    "pexpect>=4.9.0",
+]
+all = [
+    "adsyslib[remote,cloud,container,interact]",
 ]
 dev = [
     "pytest>=7.0",

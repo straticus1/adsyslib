@@ -2,7 +2,10 @@ import logging
 import sys
 from typing import List, Tuple
 
-import pexpect
+try:
+    import pexpect
+except ImportError:  # optional dependency — pip install 'adsyslib[interact]'
+    pexpect = None
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +15,11 @@ class InteractiveSession:
     Supports "smart fill" where you define prompts and their responses.
     """
     def __init__(self, command: str, args: List[str] = None, timeout: int = 30, log_output: bool = True):
+        if pexpect is None:
+            raise ImportError(
+                "pexpect is required for InteractiveSession:\n"
+                "  pip install 'adsyslib[interact]'"
+            )
         self.command = command
         self.args = args or []
         self.timeout = timeout

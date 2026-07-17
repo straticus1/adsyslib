@@ -14,13 +14,13 @@ separate project and is out of scope here; this file documents adsyslib only.
 
 ## Commands
 
-Install (editable, for development):
+Install (editable, for development — heavy deps are extras: `remote` paramiko, `cloud`
+boto3+oci, `container` docker, `interact` pexpect, `all` for everything):
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,all]"
 ```
 
-Run tests (pytest is the only test tooling configured — no pytest.ini/pyproject `[tool.pytest]`
-section exists, so plain invocation is used):
+Run tests (configured in `[tool.pytest.ini_options]`):
 ```bash
 pytest
 ```
@@ -31,9 +31,14 @@ pytest tests/test_core.py
 pytest tests/test_core.py::test_run_with_check_failure
 ```
 
-There is no configured lint/format tool (`black`, `isort`, `mypy` are listed under the `dev` extra
-in `pyproject.toml`, but no `[tool.black]`/`[tool.mypy]`/`[tool.ruff]` config exists in the repo).
-If invoked, run them unconfigured, e.g. `black src/`, `mypy src/adsyslib`.
+Lint/type gates (configured in pyproject.toml; CI runs all three — see
+`.github/workflows/ci.yml`). Both must pass before committing:
+```bash
+ruff check src/ tests/
+mypy src/adsyslib
+```
+mypy has a grandfathered `ignore_errors` ratchet list in pyproject.toml — remove modules
+from it as they're cleaned up, never add to it.
 
 Build/test inside a container (mirrors CI-like isolation, from `Dockerfile.test`):
 ```bash
@@ -55,11 +60,13 @@ adsys --help
 `adsyslib.core.Shell` execute commands locally via `subprocess`. `adsyslib.remote.RemoteShell`
 (paramiko/SSH), `adsyslib.host.docker_shell.DockerShell` (`docker exec`), and
 `adsyslib.host.kube_shell.KubeShell` (`kubectl exec`) all implement the *same* interface
-(`run()`, `read_text()`, `list_dir()`, `path_exists()`, `path_stat()`, `connect()`/`disconnect()`).
-Higher-level code is written once against this interface and works unmodified against a bare-metal
-host, a container, or a Kubernetes pod. The same pattern repeats in
-`adsyslib.compliance.context` (`LocalContext`/`RemoteContext` wrapping local `run()` vs. a
-`RemoteShell`), letting every compliance collector run identically locally or over SSH.
+(`run()`, `read_text()`, `list_dir()`, `path_exists()`, `is_dir()`, `path_stat()`,
+`connect()`/`disconnect()`). The interface is formalized as the runtime-checkable
+`adsyslib.protocols.ShellProtocol`, enforced by `tests/test_shell_contract.py` and mypy.
+Higher-level code is written once against this interface and works unmodified against a
+bare-metal host, a container, or a Kubernetes pod — compliance collectors take any
+`ShellProtocol` directly (`adsyslib.compliance.context`'s `LocalContext`/`RemoteContext`
+are deprecated shims). All errors derive from `adsyslib.core.AdsysError`.
 
 Module map (`src/adsyslib/`):
 - **core.py**: `run()`/`Shell` — the foundational local command execution primitive everything
