@@ -34,13 +34,55 @@ remote = [
 ]
 dev = [
     "pytest>=7.0",
-    "black",
-    "isort",
+    "pytest-cov",
+    "ruff",
     "mypy",
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # ratchet: add UP, B during per-module unification
+ignore = ["E501"]  # long lines grandfathered; formatter handles new code
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+implicit_optional = true  # ratchet: codebase uses `param: str = None`; fix signatures then drop
+warn_unused_ignores = true
+# Lenient baseline; per-module strictness ratchets up during the unification phase
+# (see docs/plans/2026-07-16-adsyslib-overhaul-design.md).
+
+# RATCHET LIST: pre-existing type errors grandfathered at gate introduction (2026-07-16).
+# Remove modules from this list as they are unified in Phase 2 — never add to it.
+[[tool.mypy.overrides]]
+module = [
+    "adsyslib.authentik.client",
+    "adsyslib.authentik.oauth",
+    "adsyslib.cli.commands.authentik_cmd",
+    "adsyslib.cli.commands.host_cmd",
+    "adsyslib.cli.commands.pkg_cmd",
+    "adsyslib.compliance.collectors.network",
+    "adsyslib.compliance.package",
+    "adsyslib.core",
+    "adsyslib.host.scanners.k8s",
+    "adsyslib.host.session",
+    "adsyslib.k8s.kubectl",
+    "adsyslib.keycloak.client",
+    "adsyslib.keycloak.migrate",
+    "adsyslib.logger",
+    "adsyslib.remote",
+]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
 
 [project.scripts]
 adsys = "adsyslib.cli.main:app"
