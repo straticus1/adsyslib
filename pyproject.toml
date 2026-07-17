@@ -45,6 +45,8 @@ dev = [
     "pytest-cov",
     "ruff",
     "mypy",
+    "types-PyYAML",
+    "types-paramiko",
 ]
 
 [tool.setuptools.packages.find]
@@ -73,18 +75,9 @@ module = [
     "adsyslib.authentik.client",
     "adsyslib.authentik.oauth",
     "adsyslib.cli.commands.authentik_cmd",
-    "adsyslib.cli.commands.host_cmd",
-    "adsyslib.cli.commands.pkg_cmd",
-    "adsyslib.compliance.collectors.network",
-    "adsyslib.compliance.package",
-    "adsyslib.core",
-    "adsyslib.host.scanners.k8s",
-    "adsyslib.host.session",
     "adsyslib.k8s.kubectl",
     "adsyslib.keycloak.client",
     "adsyslib.keycloak.migrate",
-    "adsyslib.logger",
-    "adsyslib.remote",
 ]
 ignore_errors = true
 

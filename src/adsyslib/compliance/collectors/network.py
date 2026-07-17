@@ -57,7 +57,7 @@ def _sshd_crypto(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> Dict
 
 
 def _tls_services(ctx: ShellProtocol) -> List[Dict[str, Any]]:
-    services = []
+    services: List[Dict[str, Any]] = []
 
     result = ctx.run(["nginx", "-T"], check=False)
     if result.ok():

@@ -1,10 +1,10 @@
 import logging
-from typing import List
+from typing import List, Optional
 
 import typer
 from rich.console import Console
 
-from adsyslib.packages import Apt, Dnf, get_package_manager
+from adsyslib.packages import Apt, Dnf, PackageManager, get_package_manager
 
 app = typer.Typer()
 console = Console()
@@ -27,7 +27,7 @@ def install_packages(
     """
     Install packages idempotently.
     """
-    pm = None
+    pm: Optional[PackageManager] = None
     if manager == "apt":
         pm = Apt()
     elif manager == "dnf":

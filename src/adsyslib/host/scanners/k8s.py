@@ -149,8 +149,8 @@ class ClusterReport:
         not_bound = [p for p in self.pvcs if p.phase != "Bound"]
         if not_bound:
             print(f"  PVCs not bound: {len(not_bound)}")
-            for p in not_bound:
-                print(f"    ! {p.namespace}/{p.name} ({p.phase})")
+            for pvc in not_bound:
+                print(f"    ! {pvc.namespace}/{pvc.name} ({pvc.phase})")
 
         if self.events:
             print(f"  Warning events: {len(self.events)}")

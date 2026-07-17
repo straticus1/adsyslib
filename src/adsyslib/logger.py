@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import List, Optional
 
 from rich.logging import RichHandler
 
@@ -9,7 +9,7 @@ def configure_logging(level: int = logging.INFO, log_file: Optional[str] = None)
     Configure logging with RichHandler for beautiful console output,
     and optionally a file handler for audit trails.
     """
-    handlers = [
+    handlers: List[logging.Handler] = [
         RichHandler(
             rich_tracebacks=True,
             show_time=True,

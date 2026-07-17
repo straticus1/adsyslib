@@ -70,6 +70,7 @@ def run(
         capture_output: Capture stdout/stderr (default True).
         text: Text mode for input/output (default True).
     """
+    args: Union[str, List[str]]
     if isinstance(cmd, list):
         cmd_str = " ".join(shlex.quote(s) for s in cmd)
         args = cmd

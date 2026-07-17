@@ -66,6 +66,9 @@ def scan(
         typer.echo(f"Connecting to pod: {namespace}/{pod}")
         session = kube_pod(pod, namespace=namespace, container=kube_container, context=kube_context)
     else:
+        if not host:
+            typer.echo("Provide a HOST argument (or --container / --pod).", err=True)
+            raise typer.Exit(code=1)
         typer.echo(f"Connecting to {user}@{host}:{port} ...")
         session = ssh_to_host(host, user=user, port=port, key_file=key_file, password=password)
 

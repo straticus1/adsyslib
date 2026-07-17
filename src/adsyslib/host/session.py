@@ -88,7 +88,7 @@ class HostSession:
     def _from_shell(cls, shell: Any, label: Optional[str] = None) -> "HostSession":
         """Build a HostSession around any compatible shell object."""
         obj = cls.__new__(cls)
-        obj.host = label or getattr(shell, "host", str(shell))
+        obj.host = label if label is not None else str(getattr(shell, "host", shell))
         obj.user = getattr(shell, "user", "")
         obj._shell = shell
         obj._scanners = {}
