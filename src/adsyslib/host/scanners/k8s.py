@@ -8,7 +8,7 @@ for in-pod service scanning.
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.core import run as _run
 
@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 class NodeStatus:
     name: str
     ready: bool
-    roles: List[str]
+    roles: list[str]
     version: str
-    conditions: List[Dict[str, str]] = field(default_factory=list)
-    taints: List[str] = field(default_factory=list)
-    issues: List[str] = field(default_factory=list)
+    conditions: list[dict[str, str]] = field(default_factory=list)
+    taints: list[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -38,7 +38,7 @@ class PodStatus:
     ready: bool
     restarts: int
     node: str
-    issues: List[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -48,7 +48,7 @@ class DeploymentStatus:
     desired: int
     ready: int
     available: int
-    issues: List[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -58,17 +58,17 @@ class PVCStatus:
     phase: str
     capacity: str
     storage_class: str
-    issues: List[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ClusterReport:
     context: Optional[str]
-    nodes: List[NodeStatus] = field(default_factory=list)
-    failing_pods: List[PodStatus] = field(default_factory=list)
-    deployments: List[DeploymentStatus] = field(default_factory=list)
-    pvcs: List[PVCStatus] = field(default_factory=list)
-    events: List[Dict[str, str]] = field(default_factory=list)
+    nodes: list[NodeStatus] = field(default_factory=list)
+    failing_pods: list[PodStatus] = field(default_factory=list)
+    deployments: list[DeploymentStatus] = field(default_factory=list)
+    pvcs: list[PVCStatus] = field(default_factory=list)
+    events: list[dict[str, str]] = field(default_factory=list)
 
     def ok(self) -> bool:
         return (
@@ -77,8 +77,8 @@ class ClusterReport:
             and all(d.ready == d.desired for d in self.deployments)
         )
 
-    def issues(self) -> Dict[str, List[str]]:
-        result: Dict[str, List[str]] = {}
+    def issues(self) -> dict[str, list[str]]:
+        result: dict[str, list[str]] = {}
         node_issues = [i for n in self.nodes for i in n.issues]
         if node_issues:
             result["nodes"] = node_issues
@@ -93,7 +93,7 @@ class ClusterReport:
             result["pvcs"] = pvc_issues
         return result
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "context": self.context,
             "ok": self.ok(),
@@ -174,7 +174,7 @@ class KubernetesClusterScanner:
     def __init__(
         self,
         context: Optional[str] = None,
-        namespaces: Optional[List[str]] = None,
+        namespaces: Optional[list[str]] = None,
         kubectl_cmd: str = "kubectl",
     ):
         self.context = context
@@ -196,7 +196,7 @@ class KubernetesClusterScanner:
             logger.warning(f"Could not parse kubectl output: {e}")
             return None
 
-    def _namespace_flags(self) -> List[str]:
+    def _namespace_flags(self) -> list[str]:
         if self.namespaces:
             return []  # We'll iterate per-namespace
         return ["--all-namespaces"]
@@ -212,7 +212,7 @@ class KubernetesClusterScanner:
 
     # ------------------------------------------------------------------
 
-    def _scan_nodes(self) -> List[NodeStatus]:
+    def _scan_nodes(self) -> list[NodeStatus]:
         data = self._kubectl_json("get", "nodes")
         if not data:
             return []
@@ -257,7 +257,7 @@ class KubernetesClusterScanner:
             ))
         return nodes
 
-    def _scan_pods(self) -> List[PodStatus]:
+    def _scan_pods(self) -> list[PodStatus]:
         """Return only pods that are failing, crashlooping, or pending too long."""
         data = self._kubectl_json("get", "pods", "--all-namespaces")
         if not data:
@@ -315,7 +315,7 @@ class KubernetesClusterScanner:
 
         return failing
 
-    def _scan_deployments(self) -> List[DeploymentStatus]:
+    def _scan_deployments(self) -> list[DeploymentStatus]:
         data = self._kubectl_json("get", "deployments", "--all-namespaces")
         if not data:
             return []
@@ -350,7 +350,7 @@ class KubernetesClusterScanner:
 
         return deployments
 
-    def _scan_pvcs(self) -> List[PVCStatus]:
+    def _scan_pvcs(self) -> list[PVCStatus]:
         data = self._kubectl_json("get", "pvc", "--all-namespaces")
         if not data:
             return []
@@ -383,7 +383,7 @@ class KubernetesClusterScanner:
 
         return pvcs
 
-    def _scan_events(self, limit: int = 20) -> List[Dict[str, str]]:
+    def _scan_events(self, limit: int = 20) -> list[dict[str, str]]:
         """Return recent Warning events across the cluster."""
         cmd = [self._kubectl]
         if self.context:

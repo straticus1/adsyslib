@@ -22,12 +22,12 @@ Usage:
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
 
-def _scan_one(session, services: Optional[List[str]]):
+def _scan_one(session, services: Optional[list[str]]):
     """Connect, scan, disconnect — designed to run in a thread."""
     try:
         session.connect()
@@ -48,8 +48,8 @@ class FleetReport:
 
     def __init__(
         self,
-        host_reports: Dict[str, Any],  # host → HostReport
-        errors: Optional[Dict[str, str]] = None,  # host → error message
+        host_reports: dict[str, Any],  # host → HostReport
+        errors: Optional[dict[str, str]] = None,  # host → error message
     ):
         self.host_reports = host_reports
         self.errors = errors or {}
@@ -57,10 +57,10 @@ class FleetReport:
     def ok(self) -> bool:
         return not self.errors and all(r.ok() for r in self.host_reports.values())
 
-    def hosts_with_issues(self) -> List[str]:
+    def hosts_with_issues(self) -> list[str]:
         return [h for h, r in self.host_reports.items() if not r.ok()]
 
-    def all_issues(self) -> Dict[str, Any]:
+    def all_issues(self) -> dict[str, Any]:
         """Returns {host: {service: [issues]}} for every host that has issues."""
         result = {}
         for host, report in self.host_reports.items():
@@ -71,7 +71,7 @@ class FleetReport:
             result["_connection_errors"] = self.errors
         return result
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "total_hosts": len(self.host_reports) + len(self.errors),
             "scanned": len(self.host_reports),
@@ -113,8 +113,8 @@ class FleetReport:
 
 
 def scan_fleet(
-    sessions: List[Any],
-    services: Optional[List[str]] = None,
+    sessions: list[Any],
+    services: Optional[list[str]] = None,
     workers: int = 10,
 ) -> FleetReport:
     """
@@ -130,8 +130,8 @@ def scan_fleet(
     Returns:
         FleetReport with per-host results and aggregate summary.
     """
-    host_reports: Dict[str, Any] = {}
-    errors: Dict[str, str] = {}
+    host_reports: dict[str, Any] = {}
+    errors: dict[str, str] = {}
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {

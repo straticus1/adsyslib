@@ -3,7 +3,6 @@ import sys
 import tempfile
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Tuple
 
 
 class IOCatcher:
@@ -59,7 +58,7 @@ class IOCatcher:
                 except Exception:
                     pass  # Best effort cleanup
 
-    def get_output(self) -> Tuple[str, str]:
+    def get_output(self) -> tuple[str, str]:
         """Returns captured (stdout, stderr) as strings (decoded from utf-8)."""
         stdout_str = ""
         stderr_str = ""

@@ -1,4 +1,3 @@
-from typing import List
 
 
 class DockerfileBuilder:
@@ -7,7 +6,7 @@ class DockerfileBuilder:
     Allows programmatic generation of Dockerfiles.
     """
     def __init__(self, base_image: str):
-        self.lines: List[str] = [f"FROM {base_image}"]
+        self.lines: list[str] = [f"FROM {base_image}"]
 
     def run(self, command: str) -> 'DockerfileBuilder':
         self.lines.append(f"RUN {command}")
@@ -25,12 +24,12 @@ class DockerfileBuilder:
         self.lines.append(f"WORKDIR {path}")
         return self
 
-    def entrypoint(self, cmd: List[str]) -> 'DockerfileBuilder':
+    def entrypoint(self, cmd: list[str]) -> 'DockerfileBuilder':
         import json
         self.lines.append(f"ENTRYPOINT {json.dumps(cmd)}")
         return self
 
-    def cmd(self, cmd: List[str]) -> 'DockerfileBuilder':
+    def cmd(self, cmd: list[str]) -> 'DockerfileBuilder':
         import json
         self.lines.append(f"CMD {json.dumps(cmd)}")
         return self
@@ -51,7 +50,7 @@ class PackageAwareBuilder(DockerfileBuilder):
         super().__init__(base_image)
         self.distro = distro_family.lower()
 
-    def install(self, packages: List[str]) -> 'PackageAwareBuilder':
+    def install(self, packages: list[str]) -> 'PackageAwareBuilder':
         """
         Generates a highly optimized RUN instruction to install packages.
         Handles update, install, and cleanup in a single layer.

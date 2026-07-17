@@ -2,7 +2,7 @@
 Nginx scanner — service status, config test, sites, TLS protocols.
 """
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import ScanResult, ServiceScanner
 
@@ -38,14 +38,14 @@ class NginxScanner(ServiceScanner):
         errors = [ln.strip() for ln in output.splitlines() if "error" in ln.lower()]
         return ok, errors
 
-    def _enabled_sites(self) -> List[str]:
+    def _enabled_sites(self) -> list[str]:
         for sites_dir in ("/etc/nginx/sites-enabled", "/etc/nginx/conf.d"):
             r = self._run(["ls", sites_dir])
             if r.ok() and r.stdout.strip():
                 return [s.strip() for s in r.stdout.splitlines() if s.strip()]
         return []
 
-    def _tls_summary(self) -> Dict[str, Any]:
+    def _tls_summary(self) -> dict[str, Any]:
         r = self._run(["nginx", "-T"])
         if not r.ok():
             return {}
@@ -62,8 +62,8 @@ class NginxScanner(ServiceScanner):
         }
 
     def _check_issues(
-        self, active: bool, conf_ok: bool, conf_errors: List[str], tls: Dict
-    ) -> List[str]:
+        self, active: bool, conf_ok: bool, conf_errors: list[str], tls: dict
+    ) -> list[str]:
         issues = []
         if not active:
             issues.append("nginx is not running")

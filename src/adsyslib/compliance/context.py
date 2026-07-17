@@ -12,7 +12,7 @@ pass the shell itself:
     collect(ctx=remote_shell)       # SSH — RemoteShell already satisfies ShellProtocol
 """
 import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.core import CommandResult, Shell
 from adsyslib.protocols import ShellProtocol
@@ -50,7 +50,7 @@ class RemoteContext:
     def read_text(self, path: str) -> Optional[str]:
         return self._shell.read_text(path)
 
-    def list_dir(self, path: str) -> List[str]:
+    def list_dir(self, path: str) -> list[str]:
         return self._shell.list_dir(path)
 
     def is_dir(self, path: str) -> bool:
@@ -59,7 +59,7 @@ class RemoteContext:
     def path_exists(self, path: str) -> bool:
         return self._shell.path_exists(path)
 
-    def path_stat(self, path: str) -> Optional[Dict[str, Any]]:
+    def path_stat(self, path: str) -> Optional[dict[str, Any]]:
         return self._shell.path_stat(path)
 
     def connect(self):

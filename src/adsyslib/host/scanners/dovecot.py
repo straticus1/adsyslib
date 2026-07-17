@@ -1,7 +1,7 @@
 """
 Dovecot scanner — IMAP/POP3 status, protocols, SSL config, auth mechanisms.
 """
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import ScanResult, ServiceScanner
 
@@ -25,12 +25,12 @@ class DovecotScanner(ServiceScanner):
             metrics={"active_connections": connections},
         )
 
-    def _doveconf(self) -> Dict[str, Any]:
+    def _doveconf(self) -> dict[str, Any]:
         result = self._run(["doveconf", "-n"])
         if not result.ok():
             return {}
 
-        conf: Dict[str, str] = {}
+        conf: dict[str, str] = {}
         for line in result.stdout.splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
@@ -53,7 +53,7 @@ class DovecotScanner(ServiceScanner):
         lines = [ln for ln in r.stdout.splitlines() if ln.strip()]
         return max(0, len(lines) - 1)  # subtract header
 
-    def _check_issues(self, active: bool, config: Dict) -> List[str]:
+    def _check_issues(self, active: bool, config: dict) -> list[str]:
         issues = []
         if not active:
             issues.append("dovecot is not running")

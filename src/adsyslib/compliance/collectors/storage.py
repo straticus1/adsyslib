@@ -4,7 +4,7 @@ Maps to controls: SC-28.
 """
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.core import Shell
 from adsyslib.protocols import ShellProtocol
@@ -12,7 +12,7 @@ from adsyslib.protocols import ShellProtocol
 logger = logging.getLogger(__name__)
 
 
-def _luks_volumes(ctx: ShellProtocol) -> List[Dict[str, Any]]:
+def _luks_volumes(ctx: ShellProtocol) -> list[dict[str, Any]]:
     result = ctx.run(["lsblk", "-o", "NAME,TYPE,FSTYPE,MOUNTPOINT", "--json"], check=False)
     if not result.ok():
         return []
@@ -22,9 +22,9 @@ def _luks_volumes(ctx: ShellProtocol) -> List[Dict[str, Any]]:
         logger.warning(f"Could not parse lsblk output: {e}")
         return []
 
-    luks: List[Dict[str, Any]] = []
+    luks: list[dict[str, Any]] = []
 
-    def walk(devices: List[Dict]) -> None:
+    def walk(devices: list[dict]) -> None:
         for d in devices:
             if d.get("fstype") == "crypto_LUKS" or d.get("type") == "crypt":
                 luks.append({
@@ -40,8 +40,8 @@ def _luks_volumes(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     return luks
 
 
-def _crypttab(ctx: ShellProtocol) -> List[Dict[str, Any]]:
-    entries: List[Dict[str, Any]] = []
+def _crypttab(ctx: ShellProtocol) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
     text = ctx.read_text("/etc/crypttab") or ""
     for line in text.splitlines():
         stripped = line.strip()
@@ -56,7 +56,7 @@ def _crypttab(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     return entries
 
 
-def collect(ctx: Optional[ShellProtocol] = None) -> Dict[str, Any]:
+def collect(ctx: Optional[ShellProtocol] = None) -> dict[str, Any]:
     """Collect encryption-at-rest evidence."""
     ctx = ctx or Shell()
     luks = _luks_volumes(ctx)

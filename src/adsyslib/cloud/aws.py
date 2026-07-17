@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 try:
     import boto3
@@ -25,7 +25,7 @@ class AWSProvider(CloudProvider):
         self.ec2 = self.session.client("ec2")
         self.s3 = self.session.client("s3")
 
-    def list_instances(self, region: str = None) -> List[Dict[str, Any]]:
+    def list_instances(self, region: str = None) -> list[dict[str, Any]]:
         # If region is specified, we might need a new client/resource
         client = self.ec2
         if region:

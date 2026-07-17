@@ -11,7 +11,7 @@ Usage:
 import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any
 
 from .package import AuditPackage, ControlResult
 
@@ -47,23 +47,23 @@ class DriftReport:
     baseline_generated_at: str
     current_generated_at: str
     hostname: str
-    frameworks: List[str]
-    control_drifts: List[ControlDrift] = field(default_factory=list)
-    new_controls: List[str] = field(default_factory=list)
-    removed_controls: List[str] = field(default_factory=list)
+    frameworks: list[str]
+    control_drifts: list[ControlDrift] = field(default_factory=list)
+    new_controls: list[str] = field(default_factory=list)
+    removed_controls: list[str] = field(default_factory=list)
     generated_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
 
     @property
-    def regressions(self) -> List[ControlDrift]:
+    def regressions(self) -> list[ControlDrift]:
         return [d for d in self.control_drifts if d.regressed]
 
     @property
-    def resolutions(self) -> List[ControlDrift]:
+    def resolutions(self) -> list[ControlDrift]:
         return [d for d in self.control_drifts if d.resolved]
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         unchanged = [d for d in self.control_drifts if not d.changed]
         return {
             "baseline_package_id": self.baseline_package_id,
@@ -78,7 +78,7 @@ class DriftReport:
             "removed_controls": self.removed_controls,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     def to_json(self, indent: int = 2) -> str:
@@ -102,7 +102,7 @@ def compare_packages(baseline: AuditPackage, current: AuditPackage) -> DriftRepo
     baseline_ids = set(baseline_map)
     current_ids = set(current_map)
 
-    drifts: List[ControlDrift] = []
+    drifts: list[ControlDrift] = []
     for ctrl_id in sorted(baseline_ids & current_ids):
         b = baseline_map[ctrl_id]
         c = current_map[ctrl_id]

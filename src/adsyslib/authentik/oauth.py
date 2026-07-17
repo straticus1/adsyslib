@@ -8,7 +8,7 @@ but packaged as a reusable Python library.
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class OAuthProviderConfig:
     app_name: str
     app_slug: str
     client_id: str
-    redirect_uris: List[str]
+    redirect_uris: list[str]
     launch_url: str
     client_type: str = "confidential"  # or "public"
     description: Optional[str] = None
@@ -61,7 +61,7 @@ class AuthentikOAuthManager:
         """
         self.container_name = container_name
 
-    def _docker_exec_python(self, script: str) -> Dict[str, Any]:
+    def _docker_exec_python(self, script: str) -> dict[str, Any]:
         """
         Execute Python code in Authentik container.
 
@@ -175,7 +175,7 @@ result = {{
 print(json.dumps(result))
 '''
 
-    def create_provider(self, config: OAuthProviderConfig) -> Dict[str, Any]:
+    def create_provider(self, config: OAuthProviderConfig) -> dict[str, Any]:
         """
         Create an OAuth2 provider.
 
@@ -196,7 +196,7 @@ print(json.dumps(result))
         logger.info(f"✓ Created provider {config.client_id}")
         return result
 
-    def create_providers_bulk(self, configs: List[OAuthProviderConfig]) -> List[Dict[str, Any]]:
+    def create_providers_bulk(self, configs: list[OAuthProviderConfig]) -> list[dict[str, Any]]:
         """
         Create multiple OAuth providers in one operation.
 
@@ -224,7 +224,7 @@ print(json.dumps(result))
         logger.info(f"✓ Created {len([r for r in results if 'error' not in r])}/{len(configs)} providers")
         return results
 
-    def list_providers(self) -> List[Dict[str, Any]]:
+    def list_providers(self) -> list[dict[str, Any]]:
         """List all OAuth2 providers."""
         script = '''
 import os, sys, json
@@ -246,7 +246,7 @@ print(json.dumps(providers))
 '''
         return self._docker_exec_python(script)
 
-    def get_provider(self, client_id: str) -> Dict[str, Any]:
+    def get_provider(self, client_id: str) -> dict[str, Any]:
         """
         Get details of a specific provider.
 
@@ -307,7 +307,7 @@ except OAuth2Provider.DoesNotExist:
         logger.info(f"✓ Deleted provider {client_id}")
 
 
-def load_providers_from_json(json_file: str) -> List[OAuthProviderConfig]:
+def load_providers_from_json(json_file: str) -> list[OAuthProviderConfig]:
     """
     Load provider configurations from JSON file.
 
@@ -340,7 +340,7 @@ def load_providers_from_json(json_file: str) -> List[OAuthProviderConfig]:
     return configs
 
 
-def generate_env_file(results: List[Dict[str, Any]], output_file: str = ".env"):
+def generate_env_file(results: list[dict[str, Any]], output_file: str = ".env"):
     """
     Generate .env file with OAuth credentials.
 

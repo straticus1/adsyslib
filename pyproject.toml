@@ -57,7 +57,7 @@ line-length = 100
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]  # ratchet: add UP, B during per-module unification
+select = ["E", "F", "I", "UP"]  # ratchet: add B during per-module unification
 ignore = ["E501"]  # long lines grandfathered; formatter handles new code
 
 [tool.mypy]

@@ -5,7 +5,7 @@ Implements the same interface as RemoteShell so all existing service
 scanners work inside containers without modification.
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.core import CommandResult, ShellConnectionError
 from adsyslib.core import run as _run
@@ -61,7 +61,7 @@ class DockerShell:
         r = self.run(["cat", path])
         return r.stdout if r.ok() else None
 
-    def list_dir(self, path: str) -> List[str]:
+    def list_dir(self, path: str) -> list[str]:
         r = self.run(["ls", "-1", path])
         return [e.strip() for e in r.stdout.splitlines() if e.strip()] if r.ok() else []
 
@@ -71,7 +71,7 @@ class DockerShell:
     def is_dir(self, path: str) -> bool:
         return self.run(["test", "-d", path]).exit_code == 0
 
-    def path_stat(self, path: str) -> Optional[Dict[str, Any]]:
+    def path_stat(self, path: str) -> Optional[dict[str, Any]]:
         r = self.run(["stat", "-c", "%a %u %Y", path])
         if not r.ok():
             return None

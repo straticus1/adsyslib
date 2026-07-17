@@ -2,7 +2,7 @@
 DNS scanner — BIND/named status, config check, zone count, rndc status.
 """
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from .base import ScanResult, ServiceScanner
 
@@ -51,7 +51,7 @@ class DnsScanner(ServiceScanner):
                 return path
         return None
 
-    def _parse_conf(self, path: str) -> Dict[str, Any]:
+    def _parse_conf(self, path: str) -> dict[str, Any]:
         text = self._shell.read_text(path)
         if not text:
             return {}
@@ -84,11 +84,11 @@ class DnsScanner(ServiceScanner):
                 return len(r2.stdout.strip().splitlines())
         return -1
 
-    def _rndc_status(self) -> Dict[str, Any]:
+    def _rndc_status(self) -> dict[str, Any]:
         r = self._run(["rndc", "status"])
         if not r.ok():
             return {"available": False}
-        data: Dict[str, Any] = {"available": True}
+        data: dict[str, Any] = {"available": True}
         for line in r.stdout.splitlines():
             if ":" in line:
                 k, _, v = line.partition(":")
@@ -96,9 +96,9 @@ class DnsScanner(ServiceScanner):
         return data
 
     def _check_issues(
-        self, active: bool, conf_ok: bool, conf_errors: List[str],
-        config: Dict, rndc: Dict,
-    ) -> List[str]:
+        self, active: bool, conf_ok: bool, conf_errors: list[str],
+        config: dict, rndc: dict,
+    ) -> list[str]:
         issues = []
         if not active:
             issues.append("named/bind9 is not running")

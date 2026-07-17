@@ -3,7 +3,7 @@ Apache scanner — service status, config test, modules, TLS config.
 Works with both apache2 (Debian/Ubuntu) and httpd (RHEL/CentOS).
 """
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from .base import ScanResult, ServiceScanner
 
@@ -37,7 +37,7 @@ class ApacheScanner(ServiceScanner):
             },
         )
 
-    def _detect_service(self) -> Tuple[str, bool]:
+    def _detect_service(self) -> tuple[str, bool]:
         """Returns (binary_name, is_active). Tries apache2 then httpd."""
         for name in ("apache2", "httpd"):
             if self._is_active(name):
@@ -49,14 +49,14 @@ class ApacheScanner(ServiceScanner):
                 return name, False
         return "apache2", False
 
-    def _config_test(self, service: str) -> Tuple[bool, List[str]]:
+    def _config_test(self, service: str) -> tuple[bool, list[str]]:
         r = self._run([service, "-t"])
         output = (r.stdout + r.stderr).strip()
         ok = "syntax ok" in output.lower() or r.exit_code == 0
         errors = [ln.strip() for ln in output.splitlines() if "error" in ln.lower()]
         return ok, errors
 
-    def _loaded_modules(self, service: str) -> List[str]:
+    def _loaded_modules(self, service: str) -> list[str]:
         r = self._run([service, "-M"])
         if not r.ok():
             return []
@@ -72,7 +72,7 @@ class ApacheScanner(ServiceScanner):
             return -1
         return sum(1 for ln in r.stdout.splitlines() if "namevhost" in ln.lower())
 
-    def _tls_summary(self) -> Dict[str, Any]:
+    def _tls_summary(self) -> dict[str, Any]:
         """Parse SSLProtocol / SSLCipherSuite from live config dump."""
         # apache2ctl or apachectl -D DUMP_CONFIG (not universally available)
         r = self._run(["apachectl", "-D", "DUMP_CONFIG"])
@@ -91,9 +91,9 @@ class ApacheScanner(ServiceScanner):
         }
 
     def _check_issues(
-        self, active: bool, conf_ok: bool, conf_errors: List[str],
-        modules: List[str], tls: Dict,
-    ) -> List[str]:
+        self, active: bool, conf_ok: bool, conf_errors: list[str],
+        modules: list[str], tls: dict,
+    ) -> list[str]:
         issues = []
         if not active:
             issues.append("apache is not running")

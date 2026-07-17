@@ -1,7 +1,7 @@
 import json
 import logging
 import sys
-from typing import Any, Dict
+from typing import Any
 
 from adsyslib.core import CommandResult, ShellError, run
 
@@ -15,7 +15,7 @@ class TerraformRunner:
     def __init__(self, working_dir: str = "."):
         self.working_dir = working_dir
 
-    def _run_tf(self, args: list, env: Dict[str, str] = None) -> CommandResult:
+    def _run_tf(self, args: list, env: dict[str, str] = None) -> CommandResult:
         cmd = ["terraform"] + args
         try:
             return run(cmd, cwd=self.working_dir, env=env, check=True)
@@ -23,7 +23,7 @@ class TerraformRunner:
             logger.error(f"Terraform command failed: {e}")
             raise
 
-    def init(self, backend_config: Dict[str, str] = None):
+    def init(self, backend_config: dict[str, str] = None):
         """Run terraform init."""
         args = ["init", "-input=false"]
         if backend_config:
@@ -31,7 +31,7 @@ class TerraformRunner:
                 args.append(f"-backend-config={k}={v}")
         self._run_tf(args)
 
-    def plan(self, var_file: str = None, vars: Dict[str, str] = None, out: str = None) -> str:
+    def plan(self, var_file: str = None, vars: dict[str, str] = None, out: str = None) -> str:
         """Run terraform plan. Returns stdout."""
         args = ["plan", "-input=false", "-no-color"]
         if var_file:
@@ -53,7 +53,7 @@ class TerraformRunner:
         
         self._run_tf(args)
 
-    def output(self, json_format: bool = True) -> Dict[str, Any]:
+    def output(self, json_format: bool = True) -> dict[str, Any]:
         """Get terraform outputs."""
         args = ["output"]
         if json_format:

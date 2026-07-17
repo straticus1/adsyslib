@@ -9,7 +9,7 @@ Usage:
 import logging
 import stat
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from adsyslib.core import CommandResult, ShellConnectionError, ShellError
 
@@ -40,8 +40,8 @@ class RemoteShell:
         self.key_file = key_file
         self.password = password
         self.timeout = timeout
-        self._client: Optional["paramiko.SSHClient"] = None
-        self._sftp: Optional["paramiko.SFTPClient"] = None
+        self._client: Optional[paramiko.SSHClient] = None
+        self._sftp: Optional[paramiko.SFTPClient] = None
 
     # ------------------------------------------------------------------
     # Connection management
@@ -60,7 +60,7 @@ class RemoteShell:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "hostname": self.host,
             "username": self.user,
             "port": self.port,
@@ -140,7 +140,7 @@ class RemoteShell:
         except OSError:
             return None
 
-    def list_dir(self, path: str) -> List[str]:
+    def list_dir(self, path: str) -> list[str]:
         """Return directory listing, or [] if not found."""
         try:
             return self._require_sftp().listdir(path)
@@ -161,7 +161,7 @@ class RemoteShell:
         except OSError:
             return False
 
-    def path_stat(self, path: str) -> Optional[Dict[str, Any]]:
+    def path_stat(self, path: str) -> Optional[dict[str, Any]]:
         """Return {permissions, owner_uid, mtime} or None."""
         try:
             s = self._require_sftp().stat(path)

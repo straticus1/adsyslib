@@ -2,7 +2,7 @@
 Postfix scanner — mail server status, queue depth, TLS config, recent errors.
 """
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import ScanResult, ServiceScanner
 
@@ -44,11 +44,11 @@ class PostfixScanner(ServiceScanner):
             metrics={"queue_depth": queue, "recent_errors": errors},
         )
 
-    def _postconf(self) -> Dict[str, Any]:
+    def _postconf(self) -> dict[str, Any]:
         result = self._run(["postconf", "-n"])
         if not result.ok():
             return {}
-        conf: Dict[str, str] = {}
+        conf: dict[str, str] = {}
         for line in result.stdout.splitlines():
             if "=" in line:
                 k, _, v = line.partition("=")
@@ -64,7 +64,7 @@ class PostfixScanner(ServiceScanner):
         m = re.search(r"(\d+)\s+request", last, re.IGNORECASE)
         return int(m.group(1)) if m else 0
 
-    def _recent_errors(self, lines: int = 50) -> List[str]:
+    def _recent_errors(self, lines: int = 50) -> list[str]:
         for log in ("/var/log/mail.log", "/var/log/maillog"):
             result = self._run(["tail", f"-{lines}", log])
             if result.ok() and result.stdout:
@@ -74,7 +74,7 @@ class PostfixScanner(ServiceScanner):
                 ][-20:]
         return []
 
-    def _check_issues(self, active: bool, config: Dict, queue: int) -> List[str]:
+    def _check_issues(self, active: bool, config: dict, queue: int) -> list[str]:
         issues = []
         if not active:
             issues.append("postfix is not running")

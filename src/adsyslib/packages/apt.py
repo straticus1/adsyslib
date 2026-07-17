@@ -1,5 +1,5 @@
 import logging
-from typing import List, Union
+from typing import Union
 
 from adsyslib.core import ShellError, run
 from adsyslib.packages.base import PackageManager
@@ -21,13 +21,13 @@ class Apt(PackageManager):
         else:
             self.use_sudo = use_sudo
 
-    def _build_cmd(self, cmd: List[str]) -> List[str]:
+    def _build_cmd(self, cmd: list[str]) -> list[str]:
         """Prepend sudo if needed."""
         if self.use_sudo:
             return ["sudo"] + cmd
         return cmd
 
-    def install(self, packages: Union[str, List[str]], update: bool = False) -> bool:
+    def install(self, packages: Union[str, list[str]], update: bool = False) -> bool:
         pkg_list = self._ensure_list(packages)
         if not pkg_list:
             return True
@@ -52,7 +52,7 @@ class Apt(PackageManager):
             logger.error(f"Failed to install packages {to_install}: {e}")
             raise
 
-    def uninstall(self, packages: Union[str, List[str]]) -> bool:
+    def uninstall(self, packages: Union[str, list[str]]) -> bool:
         pkg_list = self._ensure_list(packages)
         if not pkg_list:
             return True

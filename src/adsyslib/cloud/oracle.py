@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 try:
     import oci
@@ -35,7 +35,7 @@ class OracleProvider(CloudProvider):
         # For simplicity, we assume user passes compartment_id in methods or we fetch tenancy root.
         self.tenancy_id = self.config["tenancy"]
 
-    def list_instances(self, region: str = None) -> List[Dict[str, Any]]:
+    def list_instances(self, region: str = None) -> list[dict[str, Any]]:
         # OCI listing requires compartment ID. 
         # listing ALL instances in tenancy is expensive (recursive).
         # We'll list in the root compartment for now as a default.

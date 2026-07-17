@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Optional
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -177,7 +177,7 @@ def health():
 def oauth_create(
     app_name: str = typer.Argument(..., help="Application name"),
     client_id: str = typer.Argument(..., help="OAuth client ID"),
-    redirect_uris: List[str] = typer.Option(..., "--redirect-uri", "-r", help="Redirect URI (can specify multiple)"),
+    redirect_uris: list[str] = typer.Option(..., "--redirect-uri", "-r", help="Redirect URI (can specify multiple)"),
     launch_url: str = typer.Option(..., "--launch-url", help="Application launch URL"),
     app_slug: str = typer.Option(None, "--slug", help="Application slug (defaults to lowercase app_name)"),
     client_type: str = typer.Option("confidential", "--type", help="Client type: confidential or public"),

@@ -2,7 +2,7 @@
 SpamAssassin scanner — spamd status, version, rule freshness, bayes status.
 """
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import ScanResult, ServiceScanner
 
@@ -45,18 +45,18 @@ class SpamassassinScanner(ServiceScanner):
                     pass
         return -1
 
-    def _bayes_status(self) -> Dict[str, Any]:
+    def _bayes_status(self) -> dict[str, Any]:
         r = self._run(["sa-learn", "--dump", "magic"])
         if not r.ok():
             return {"available": False}
-        result: Dict[str, Any] = {"available": True}
+        result: dict[str, Any] = {"available": True}
         for line in r.stdout.splitlines():
             m = re.match(r"^0\.\d+\s+\d+\s+(\w+)\s+(.+)$", line.strip())
             if m:
                 result[m.group(1).lower()] = m.group(2).strip()
         return result
 
-    def _check_issues(self, active: bool, rule_age: int, bayes: Dict) -> List[str]:
+    def _check_issues(self, active: bool, rule_age: int, bayes: dict) -> list[str]:
         issues = []
         if not active:
             issues.append("spamd is not running")

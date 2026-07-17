@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -20,8 +20,8 @@ def get_manager():
 def run_container(
     image: str,
     name: Optional[str] = typer.Option(None, help="Container name"),
-    ports: Optional[List[str]] = typer.Option(None, help="Port mappings host:container"),
-    env: Optional[List[str]] = typer.Option(None, help="Env vars KEY=VALUE"),
+    ports: Optional[list[str]] = typer.Option(None, help="Port mappings host:container"),
+    env: Optional[list[str]] = typer.Option(None, help="Env vars KEY=VALUE"),
     detach: bool = typer.Option(True, help="Run in background"),
     wait_log: Optional[str] = typer.Option(None, help="Wait for specific log pattern")
 ):
@@ -86,7 +86,7 @@ def list_containers():
 def generate_dockerfile(
     image: str = typer.Option("python:3.9-slim", help="Base image"),
     distro: str = typer.Option("debian", help="Distro family: debian, rhel, alpine"),
-    packages: List[str] = typer.Option([], help="Packages to install"),
+    packages: list[str] = typer.Option([], help="Packages to install"),
     out: str = typer.Option("Dockerfile", help="Output path")
 ):
     """Generate a production-ready Dockerfile with installed packages."""

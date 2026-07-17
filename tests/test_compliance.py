@@ -6,7 +6,7 @@ no real filesystem reads, no package manager calls.
 """
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pytest
 
@@ -41,9 +41,9 @@ class FakeContext(CollectionContext):
 
     def __init__(
         self,
-        files: Optional[Dict[str, str]] = None,
-        commands: Optional[Dict[str, str]] = None,
-        dirs: Optional[List[str]] = None,
+        files: Optional[dict[str, str]] = None,
+        commands: Optional[dict[str, str]] = None,
+        dirs: Optional[list[str]] = None,
     ):
         self._files = files or {}
         self._commands = commands or {}
@@ -63,7 +63,7 @@ class FakeContext(CollectionContext):
     def read_text(self, path: str) -> Optional[str]:
         return self._files.get(path)
 
-    def list_dir(self, path: str) -> List[str]:
+    def list_dir(self, path: str) -> list[str]:
         prefix = path.rstrip("/") + "/"
         names = [k[len(prefix):] for k in self._files if k.startswith(prefix) and "/" not in k[len(prefix):]]
         return names
@@ -74,7 +74,7 @@ class FakeContext(CollectionContext):
     def path_exists(self, path: str) -> bool:
         return path in self._files or path in self._dirs
 
-    def path_stat(self, path: str) -> Optional[Dict[str, Any]]:
+    def path_stat(self, path: str) -> Optional[dict[str, Any]]:
         if path not in self._files and path not in self._dirs:
             return None
         return {"permissions": "700", "owner_uid": 0, "mtime": 1700000000.0}

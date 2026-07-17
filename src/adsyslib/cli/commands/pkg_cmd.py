@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -20,7 +20,7 @@ def detect_manager():
 
 @app.command("install")
 def install_packages(
-    packages: List[str] = typer.Argument(..., help="List of packages to install"),
+    packages: list[str] = typer.Argument(..., help="List of packages to install"),
     update: bool = typer.Option(False, "--update", "-u", help="Update lists before install"),
     manager: str = typer.Option("auto", help="Force manager: 'apt' or 'dnf'")
 ):
@@ -48,7 +48,7 @@ def install_packages(
         raise typer.Exit(1)
 
 @app.command("remove")
-def remove_packages(packages: List[str]):
+def remove_packages(packages: list[str]):
     """Uninstall packages."""
     pm = detect_manager()
     if not pm:

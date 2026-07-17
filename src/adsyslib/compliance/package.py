@@ -5,7 +5,7 @@ import socket
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any
 
 try:
     import yaml
@@ -21,28 +21,28 @@ class ControlResult:
     status: str  # pass | fail | not_applicable | error
     evidence: str = ""
     framework: str = ""
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class AuditPackage:
-    frameworks: List[str]
-    auth: Dict[str, Any] = field(default_factory=dict)
-    config_mgmt_proof: Dict[str, Any] = field(default_factory=dict)
-    admin: Dict[str, Any] = field(default_factory=dict)
-    entitlements: Dict[str, Any] = field(default_factory=dict)
-    logging: Dict[str, Any] = field(default_factory=dict)
-    network: Dict[str, Any] = field(default_factory=dict)
-    storage: Dict[str, Any] = field(default_factory=dict)
-    patching: Dict[str, Any] = field(default_factory=dict)
-    controls: List[ControlResult] = field(default_factory=list)
+    frameworks: list[str]
+    auth: dict[str, Any] = field(default_factory=dict)
+    config_mgmt_proof: dict[str, Any] = field(default_factory=dict)
+    admin: dict[str, Any] = field(default_factory=dict)
+    entitlements: dict[str, Any] = field(default_factory=dict)
+    logging: dict[str, Any] = field(default_factory=dict)
+    network: dict[str, Any] = field(default_factory=dict)
+    storage: dict[str, Any] = field(default_factory=dict)
+    patching: dict[str, Any] = field(default_factory=dict)
+    controls: list[ControlResult] = field(default_factory=list)
     package_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     generated_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
     hostname: str = field(default_factory=socket.getfqdn)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     def to_json(self, indent: int = 2) -> str:
@@ -90,7 +90,7 @@ class AuditPackage:
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """
         Validate that this AuditPackage meets ERS ingest requirements.
 
@@ -139,7 +139,7 @@ class AuditPackage:
                 errors.append(f"{prefix}: framework is empty")
         return errors
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         counts = {"pass": 0, "fail": 0, "not_applicable": 0, "error": 0}
         for c in self.controls:
             counts[c.status] = counts.get(c.status, 0) + 1

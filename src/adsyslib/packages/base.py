@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import List, Union
+from typing import Union
 
 
 class PackageManager(ABC):
@@ -19,7 +19,7 @@ class PackageManager(ABC):
         return shutil.which("sudo") is not None
 
     @abstractmethod
-    def install(self, packages: Union[str, List[str]], update: bool = False) -> bool:
+    def install(self, packages: Union[str, list[str]], update: bool = False) -> bool:
         """
         Install one or more packages.
         
@@ -30,7 +30,7 @@ class PackageManager(ABC):
         pass
 
     @abstractmethod
-    def uninstall(self, packages: Union[str, List[str]]) -> bool:
+    def uninstall(self, packages: Union[str, list[str]]) -> bool:
         """Uninstall one or more packages."""
         pass
 
@@ -44,7 +44,7 @@ class PackageManager(ABC):
         """Update package repository lists."""
         pass
 
-    def _ensure_list(self, packages: Union[str, List[str]]) -> List[str]:
+    def _ensure_list(self, packages: Union[str, list[str]]) -> list[str]:
         if isinstance(packages, str):
             return [packages]
         return packages

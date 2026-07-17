@@ -3,7 +3,6 @@ Tests for DockerShell, KubeShell, KubernetesClusterScanner, and FleetReport.
 Uses FakeProcess to intercept local subprocess calls without real Docker/kubectl.
 """
 import json
-from typing import Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -26,7 +25,7 @@ def _result(stdout="", exit_code=0):
     return CommandResult(stdout=stdout, stderr="", exit_code=exit_code, command="", duration=0.0)
 
 
-def _patch_run(responses: Dict[str, str]):
+def _patch_run(responses: dict[str, str]):
     """
     Returns a mock for adsyslib.core.run that maps command strings to stdout.
     Unrecognised commands return exit_code=1.

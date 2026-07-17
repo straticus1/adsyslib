@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 
 class CloudProvider(ABC):
@@ -9,7 +9,7 @@ class CloudProvider(ABC):
     """
 
     @abstractmethod
-    def list_instances(self, region: str = None) -> List[Dict[str, Any]]:
+    def list_instances(self, region: str = None) -> list[dict[str, Any]]:
         """List compute instances in a region."""
         pass
 

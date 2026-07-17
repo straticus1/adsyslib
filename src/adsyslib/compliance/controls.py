@@ -1,7 +1,6 @@
-from typing import Dict, List
 
 # NIST 800-53 control subset relevant to DevOps/infrastructure audits
-NIST_800_53: Dict[str, str] = {
+NIST_800_53: dict[str, str] = {
     "AC-2":  "Account Management",
     "AC-3":  "Access Enforcement",
     "AC-6":  "Least Privilege",
@@ -22,7 +21,7 @@ NIST_800_53: Dict[str, str] = {
 }
 
 # Maps compliance framework → relevant NIST 800-53 control IDs
-FRAMEWORK_CONTROLS: Dict[str, List[str]] = {
+FRAMEWORK_CONTROLS: dict[str, list[str]] = {
     "fedramp": [
         "AC-2", "AC-3", "AC-6", "AC-17",
         "AU-2", "AU-9",
@@ -56,10 +55,10 @@ def control_title(control_id: str) -> str:
     return NIST_800_53.get(control_id, control_id)
 
 
-def get_controls_for_frameworks(frameworks: List[str]) -> List[str]:
+def get_controls_for_frameworks(frameworks: list[str]) -> list[str]:
     """Return deduplicated control IDs for the given frameworks, preserving order."""
     seen: set = set()
-    result: List[str] = []
+    result: list[str] = []
     for fw in frameworks:
         for ctrl_id in FRAMEWORK_CONTROLS.get(fw.lower(), []):
             if ctrl_id not in seen:

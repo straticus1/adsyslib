@@ -3,7 +3,7 @@ Keycloak Identity Provider Client.
 Basic client for extracting data from Keycloak for migration purposes.
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import requests
 
@@ -83,11 +83,11 @@ class KeycloakClient:
 
     # ==================== REALM OPERATIONS ====================
 
-    def get_realm(self) -> Dict[str, Any]:
+    def get_realm(self) -> dict[str, Any]:
         """Get current realm configuration."""
         return self._request("GET", "")
 
-    def list_realms(self) -> List[Dict[str, Any]]:
+    def list_realms(self) -> list[dict[str, Any]]:
         """List all realms (requires master realm access)."""
         url = f"{self.base_url}/admin/realms"
         self.session.headers.update({"Authorization": f"Bearer {self.token}"})
@@ -99,7 +99,7 @@ class KeycloakClient:
 
     def list_users(
         self, max_results: int = 100, search: str = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List users in the realm.
 
@@ -116,73 +116,73 @@ class KeycloakClient:
 
         return self._request("GET", "users", params=params)
 
-    def get_user(self, user_id: str) -> Dict[str, Any]:
+    def get_user(self, user_id: str) -> dict[str, Any]:
         """Get a specific user by ID."""
         return self._request("GET", f"users/{user_id}")
 
-    def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+    def get_user_by_username(self, username: str) -> Optional[dict[str, Any]]:
         """Get a user by username."""
         users = self._request("GET", "users", params={"username": username, "exact": True})
         return users[0] if users else None
 
-    def get_user_groups(self, user_id: str) -> List[Dict[str, Any]]:
+    def get_user_groups(self, user_id: str) -> list[dict[str, Any]]:
         """Get groups for a specific user."""
         return self._request("GET", f"users/{user_id}/groups")
 
-    def get_user_roles(self, user_id: str) -> Dict[str, Any]:
+    def get_user_roles(self, user_id: str) -> dict[str, Any]:
         """Get role mappings for a user."""
         return self._request("GET", f"users/{user_id}/role-mappings")
 
-    def get_user_credentials(self, user_id: str) -> List[Dict[str, Any]]:
+    def get_user_credentials(self, user_id: str) -> list[dict[str, Any]]:
         """Get credentials for a user (metadata only, not passwords)."""
         return self._request("GET", f"users/{user_id}/credentials")
 
     # ==================== GROUP OPERATIONS ====================
 
-    def list_groups(self) -> List[Dict[str, Any]]:
+    def list_groups(self) -> list[dict[str, Any]]:
         """List all groups in the realm."""
         return self._request("GET", "groups")
 
-    def get_group(self, group_id: str) -> Dict[str, Any]:
+    def get_group(self, group_id: str) -> dict[str, Any]:
         """Get a specific group by ID."""
         return self._request("GET", f"groups/{group_id}")
 
-    def get_group_members(self, group_id: str) -> List[Dict[str, Any]]:
+    def get_group_members(self, group_id: str) -> list[dict[str, Any]]:
         """Get members of a group."""
         return self._request("GET", f"groups/{group_id}/members")
 
     # ==================== CLIENT OPERATIONS ====================
 
-    def list_clients(self) -> List[Dict[str, Any]]:
+    def list_clients(self) -> list[dict[str, Any]]:
         """List all clients in the realm."""
         return self._request("GET", "clients")
 
-    def get_client(self, client_id: str) -> Dict[str, Any]:
+    def get_client(self, client_id: str) -> dict[str, Any]:
         """Get a specific client by ID."""
         return self._request("GET", f"clients/{client_id}")
 
-    def get_client_by_client_id(self, client_id: str) -> Optional[Dict[str, Any]]:
+    def get_client_by_client_id(self, client_id: str) -> Optional[dict[str, Any]]:
         """Get a client by clientId."""
         clients = self._request("GET", "clients", params={"clientId": client_id})
         return clients[0] if clients else None
 
     # ==================== ROLE OPERATIONS ====================
 
-    def list_realm_roles(self) -> List[Dict[str, Any]]:
+    def list_realm_roles(self) -> list[dict[str, Any]]:
         """List all realm-level roles."""
         return self._request("GET", "roles")
 
-    def get_realm_role(self, role_name: str) -> Dict[str, Any]:
+    def get_realm_role(self, role_name: str) -> dict[str, Any]:
         """Get a specific realm role."""
         return self._request("GET", f"roles/{role_name}")
 
-    def list_client_roles(self, client_id: str) -> List[Dict[str, Any]]:
+    def list_client_roles(self, client_id: str) -> list[dict[str, Any]]:
         """List roles for a specific client."""
         return self._request("GET", f"clients/{client_id}/roles")
 
     # ==================== EXPORT/MIGRATION HELPERS ====================
 
-    def export_realm_full(self) -> Dict[str, Any]:
+    def export_realm_full(self) -> dict[str, Any]:
         """
         Export complete realm configuration including users.
         Note: This is a convenience method that aggregates multiple API calls.
@@ -220,7 +220,7 @@ class KeycloakClient:
 
         return export_data
 
-    def export_users_minimal(self) -> List[Dict[str, Any]]:
+    def export_users_minimal(self) -> list[dict[str, Any]]:
         """
         Export users with essential fields for migration.
 

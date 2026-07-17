@@ -17,7 +17,7 @@ Semantics every implementation must honor:
 
 Conformance is enforced by the contract suite in ``tests/test_shell_contract.py``.
 """
-from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import Any, Optional, Protocol, Union, runtime_checkable
 
 from adsyslib.core import CommandResult
 
@@ -28,13 +28,13 @@ __all__ = ["ShellProtocol"]
 class ShellProtocol(Protocol):
     """Structural interface for all execution targets (local, SSH, Docker, K8s)."""
 
-    def run(self, cmd: Union[str, List[str]], check: bool = False, **kwargs: Any) -> CommandResult:
+    def run(self, cmd: Union[str, list[str]], check: bool = False, **kwargs: Any) -> CommandResult:
         ...
 
     def read_text(self, path: str) -> Optional[str]:
         ...
 
-    def list_dir(self, path: str) -> List[str]:
+    def list_dir(self, path: str) -> list[str]:
         ...
 
     def path_exists(self, path: str) -> bool:
@@ -43,7 +43,7 @@ class ShellProtocol(Protocol):
     def is_dir(self, path: str) -> bool:
         ...
 
-    def path_stat(self, path: str) -> Optional[Dict[str, Any]]:
+    def path_stat(self, path: str) -> Optional[dict[str, Any]]:
         ...
 
     def connect(self) -> "ShellProtocol":

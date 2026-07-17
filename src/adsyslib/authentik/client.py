@@ -3,7 +3,7 @@ Authentik Identity Provider Management.
 High-level wrapper around authentik-client for managing users, groups, applications, and providers.
 """
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 
@@ -34,7 +34,7 @@ class AuthentikClient:
         })
         self.session.verify = verify_ssl
 
-    def _request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+    def _request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
         """Make an API request."""
         url = f"{self.base_url}/api/v3/{endpoint.lstrip('/')}"
         logger.debug(f"Authentik API: {method} {url}")
@@ -48,7 +48,7 @@ class AuthentikClient:
 
     # ==================== USERS ====================
     
-    def list_users(self, search: str = None) -> List[Dict[str, Any]]:
+    def list_users(self, search: str = None) -> list[dict[str, Any]]:
         """List all users, optionally filtered by search term."""
         params = {}
         if search:
@@ -56,7 +56,7 @@ class AuthentikClient:
         result = self._request("GET", "/core/users/", params=params)
         return result.get("results", [])
 
-    def get_user(self, user_id: int) -> Dict[str, Any]:
+    def get_user(self, user_id: int) -> dict[str, Any]:
         """Get a specific user by ID."""
         return self._request("GET", f"/core/users/{user_id}/")
 
@@ -66,9 +66,9 @@ class AuthentikClient:
         name: str, 
         email: str = None,
         is_active: bool = True,
-        groups: List[str] = None,
-        attributes: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
+        groups: list[str] = None,
+        attributes: dict[str, Any] = None
+    ) -> dict[str, Any]:
         """
         Create a new user.
         
@@ -95,7 +95,7 @@ class AuthentikClient:
         logger.info(f"Creating Authentik user: {username}")
         return self._request("POST", "/core/users/", json=data)
 
-    def update_user(self, user_id: int, **kwargs) -> Dict[str, Any]:
+    def update_user(self, user_id: int, **kwargs) -> dict[str, Any]:
         """Update a user's attributes."""
         logger.info(f"Updating Authentik user: {user_id}")
         return self._request("PATCH", f"/core/users/{user_id}/", json=kwargs)
@@ -112,7 +112,7 @@ class AuthentikClient:
 
     # ==================== GROUPS ====================
 
-    def list_groups(self, search: str = None) -> List[Dict[str, Any]]:
+    def list_groups(self, search: str = None) -> list[dict[str, Any]]:
         """List all groups."""
         params = {}
         if search:
@@ -120,7 +120,7 @@ class AuthentikClient:
         result = self._request("GET", "/core/groups/", params=params)
         return result.get("results", [])
 
-    def get_group(self, group_id: str) -> Dict[str, Any]:
+    def get_group(self, group_id: str) -> dict[str, Any]:
         """Get a specific group by UUID."""
         return self._request("GET", f"/core/groups/{group_id}/")
 
@@ -129,8 +129,8 @@ class AuthentikClient:
         name: str, 
         is_superuser: bool = False,
         parent: str = None,
-        attributes: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
+        attributes: dict[str, Any] = None
+    ) -> dict[str, Any]:
         """Create a new group."""
         data = {
             "name": name,
@@ -169,12 +169,12 @@ class AuthentikClient:
 
     # ==================== APPLICATIONS ====================
 
-    def list_applications(self) -> List[Dict[str, Any]]:
+    def list_applications(self) -> list[dict[str, Any]]:
         """List all applications."""
         result = self._request("GET", "/core/applications/")
         return result.get("results", [])
 
-    def get_application(self, slug: str) -> Dict[str, Any]:
+    def get_application(self, slug: str) -> dict[str, Any]:
         """Get an application by slug."""
         return self._request("GET", f"/core/applications/{slug}/")
 
@@ -185,7 +185,7 @@ class AuthentikClient:
         provider: int = None,
         meta_launch_url: str = None,
         open_in_new_tab: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a new application."""
         data = {
             "name": name,
@@ -207,7 +207,7 @@ class AuthentikClient:
 
     # ==================== PROVIDERS ====================
 
-    def list_providers(self, provider_type: str = None) -> List[Dict[str, Any]]:
+    def list_providers(self, provider_type: str = None) -> list[dict[str, Any]]:
         """
         List providers.
         
@@ -229,7 +229,7 @@ class AuthentikClient:
         client_id: str = None,
         client_secret: str = None,
         redirect_uris: str = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create an OAuth2 provider."""
         data = {
             "name": name,
@@ -252,7 +252,7 @@ class AuthentikClient:
         authorization_flow: str,
         external_host: str,
         mode: str = "forward_single"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a proxy provider for forward auth."""
         data = {
             "name": name,
@@ -265,18 +265,18 @@ class AuthentikClient:
 
     # ==================== FLOWS ====================
 
-    def list_flows(self) -> List[Dict[str, Any]]:
+    def list_flows(self) -> list[dict[str, Any]]:
         """List all flows."""
         result = self._request("GET", "/flows/instances/")
         return result.get("results", [])
 
-    def get_flow(self, slug: str) -> Dict[str, Any]:
+    def get_flow(self, slug: str) -> dict[str, Any]:
         """Get a flow by slug."""
         return self._request("GET", f"/flows/instances/{slug}/")
 
     # ==================== TOKENS ====================
 
-    def list_tokens(self, user_id: int = None) -> List[Dict[str, Any]]:
+    def list_tokens(self, user_id: int = None) -> list[dict[str, Any]]:
         """List API tokens, optionally filtered by user."""
         params = {}
         if user_id:
@@ -291,7 +291,7 @@ class AuthentikClient:
         intent: str = "api",
         expiring: bool = True,
         description: str = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create an API token for a user."""
         data = {
             "identifier": identifier,
@@ -315,6 +315,6 @@ class AuthentikClient:
         except Exception:
             return False
 
-    def get_system_info(self) -> Dict[str, Any]:
+    def get_system_info(self) -> dict[str, Any]:
         """Get system information."""
         return self._request("GET", "/admin/system/")

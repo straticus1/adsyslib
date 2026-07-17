@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import typer
 
@@ -10,7 +10,7 @@ VALID_FRAMEWORKS = {"fedramp", "hipaa", "sox", "glba"}
 
 @app.command("generate")
 def generate(
-    frameworks: List[str] = typer.Option(
+    frameworks: list[str] = typer.Option(
         ["fedramp"], "--framework", "-f",
         help="Compliance framework(s): fedramp, hipaa, sox, glba",
     ),

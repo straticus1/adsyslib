@@ -2,7 +2,7 @@
 PostgreSQL scanner — service status, version, pg_hba auth methods, SSL config.
 """
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import ScanResult, ServiceScanner
 
@@ -35,7 +35,7 @@ class PostgresScanner(ServiceScanner):
                 return r.stdout.splitlines()[0].strip()
         return ""
 
-    def _ssl_config(self) -> Dict[str, Any]:
+    def _ssl_config(self) -> dict[str, Any]:
         """Read ssl setting from postgresql.conf."""
         for path in (
             "/etc/postgresql/postgresql.conf",
@@ -53,7 +53,7 @@ class PostgresScanner(ServiceScanner):
             }
         return {"ssl_enabled": False, "ssl_cert_file": ""}
 
-    def _parse_hba(self) -> List[Dict[str, str]]:
+    def _parse_hba(self) -> list[dict[str, str]]:
         """Parse pg_hba.conf for auth method per connection type."""
         for path in (
             "/etc/postgresql/pg_hba.conf",
@@ -80,7 +80,7 @@ class PostgresScanner(ServiceScanner):
             return entries
         return []
 
-    def _check_issues(self, active: bool, ssl: Dict, hba: List[Dict]) -> List[str]:
+    def _check_issues(self, active: bool, ssl: dict, hba: list[dict]) -> list[str]:
         issues = []
         if not active:
             issues.append("postgresql is not running")

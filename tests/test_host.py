@@ -5,7 +5,7 @@ Uses a FakeShell that simulates RemoteShell responses so no real SSH
 connection is needed.
 """
 import json
-from typing import Dict, Optional
+from typing import Optional
 
 from adsyslib.core import CommandResult
 from adsyslib.host.scanners import ScanResult
@@ -27,7 +27,7 @@ from adsyslib.host.session import HostReport, HostSession
 class FakeShell:
     """Simulates RemoteShell for unit tests."""
 
-    def __init__(self, commands: Optional[Dict[str, str]] = None, files: Optional[Dict[str, str]] = None):
+    def __init__(self, commands: Optional[dict[str, str]] = None, files: Optional[dict[str, str]] = None):
         self._commands = commands or {}
         self._files = files or {}
         self.host = "test.host"

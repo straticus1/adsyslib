@@ -2,7 +2,7 @@
 Orchestrates collectors → evaluates controls → builds an AuditPackage.
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.core import Shell
 from adsyslib.protocols import ShellProtocol
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Per-section control evaluators
 # ---------------------------------------------------------------------------
 
-def _auth_controls(data: Dict[str, Any]) -> List[ControlResult]:
+def _auth_controls(data: dict[str, Any]) -> list[ControlResult]:
     results = []
     sshd = data.get("sshd", {})
     mfa = data.get("mfa", {})
@@ -77,7 +77,7 @@ def _auth_controls(data: Dict[str, Any]) -> List[ControlResult]:
     return results
 
 
-def _cm_controls(data: Dict[str, Any]) -> List[ControlResult]:
+def _cm_controls(data: dict[str, Any]) -> list[ControlResult]:
     detected = data.get("config_mgmt_detected", False)
     git_count = len(data.get("git_repos", []))
 
@@ -103,7 +103,7 @@ def _cm_controls(data: Dict[str, Any]) -> List[ControlResult]:
     ]
 
 
-def _admin_controls(data: Dict[str, Any]) -> List[ControlResult]:
+def _admin_controls(data: dict[str, Any]) -> list[ControlResult]:
     priv = data.get("privileged_accounts", [])
     non_root_uid0 = [a for a in priv if a["username"] != "root"]
     hardening = data.get("sshd_hardening", {})
@@ -133,7 +133,7 @@ def _admin_controls(data: Dict[str, Any]) -> List[ControlResult]:
     ]
 
 
-def _entitlement_controls(data: Dict[str, Any]) -> List[ControlResult]:
+def _entitlement_controls(data: dict[str, Any]) -> list[ControlResult]:
     local_groups = data.get("local_groups", [])
     priv_group = next(
         (g for g in local_groups if g["name"] in ("sudo", "wheel", "admin")), None
@@ -158,7 +158,7 @@ def _entitlement_controls(data: Dict[str, Any]) -> List[ControlResult]:
     ]
 
 
-def _logging_controls(data: Dict[str, Any]) -> List[ControlResult]:
+def _logging_controls(data: dict[str, Any]) -> list[ControlResult]:
     auditd = data.get("auditd", {})
     syslog = data.get("syslog", {})
     forwarding = data.get("log_forwarding", {})
@@ -202,7 +202,7 @@ def _logging_controls(data: Dict[str, Any]) -> List[ControlResult]:
     return results
 
 
-def _network_controls(data: Dict[str, Any]) -> List[ControlResult]:
+def _network_controls(data: dict[str, Any]) -> list[ControlResult]:
     crypto = data.get("sshd_crypto", {})
     weak = (
         crypto.get("weak_ciphers_found", [])
@@ -227,7 +227,7 @@ def _network_controls(data: Dict[str, Any]) -> List[ControlResult]:
     ]
 
 
-def _storage_controls(data: Dict[str, Any]) -> List[ControlResult]:
+def _storage_controls(data: dict[str, Any]) -> list[ControlResult]:
     return [
         ControlResult(
             id="SC-28",
@@ -242,7 +242,7 @@ def _storage_controls(data: Dict[str, Any]) -> List[ControlResult]:
     ]
 
 
-def _patching_controls(data: Dict[str, Any]) -> List[ControlResult]:
+def _patching_controls(data: dict[str, Any]) -> list[ControlResult]:
     updates = data.get("pending_updates", {})
     malware = data.get("malware_protection", {})
 
@@ -297,7 +297,7 @@ _HOST_ISSUE_CONTROLS = {
 }
 
 
-def host_controls(host_report: Any) -> List[ControlResult]:
+def host_controls(host_report: Any) -> list[ControlResult]:
     """
     Map a HostReport's service issues to NIST 800-53 controls.
 
@@ -371,14 +371,14 @@ def merge_host_findings(package: "AuditPackage", host_report: Any) -> "AuditPack
 # ---------------------------------------------------------------------------
 
 def build_package(
-    frameworks: List[str],
+    frameworks: list[str],
     target: Any = None,
     include_aws_iam: bool = False,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
     ansible_log: str = "/var/log/ansible.log",
-    terraform_state_paths: Optional[List[str]] = None,
-    git_config_paths: Optional[List[str]] = None,
+    terraform_state_paths: Optional[list[str]] = None,
+    git_config_paths: Optional[list[str]] = None,
 ) -> AuditPackage:
     """
     Collect all evidence, evaluate controls, and return a populated AuditPackage.

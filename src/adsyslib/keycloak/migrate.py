@@ -3,7 +3,7 @@ Keycloak to Authentik migration utilities.
 Helps migrate users, groups, and applications from Keycloak to Authentik.
 """
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from adsyslib.authentik.client import AuthentikClient
 from adsyslib.keycloak.client import KeycloakClient
@@ -50,7 +50,7 @@ class KeycloakToAuthentikMigrator:
             "errors": [],
         }
 
-    def migrate_groups(self) -> Dict[str, str]:
+    def migrate_groups(self) -> dict[str, str]:
         """
         Migrate groups from Keycloak to Authentik.
 
@@ -104,8 +104,8 @@ class KeycloakToAuthentikMigrator:
         return group_mapping
 
     def migrate_users(
-        self, group_mapping: Dict[str, str] = None, send_password_reset: bool = False
-    ) -> List[Dict[str, Any]]:
+        self, group_mapping: dict[str, str] = None, send_password_reset: bool = False
+    ) -> list[dict[str, Any]]:
         """
         Migrate users from Keycloak to Authentik.
 
@@ -211,7 +211,7 @@ class KeycloakToAuthentikMigrator:
 
         return results
 
-    def migrate_all(self) -> Dict[str, Any]:
+    def migrate_all(self) -> dict[str, Any]:
         """
         Perform full migration: groups, then users.
 
@@ -270,7 +270,7 @@ def quick_migrate(
     authentik_token: str,
     default_password: str = None,
     dry_run: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Quick migration helper function.
 

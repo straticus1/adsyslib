@@ -1,7 +1,7 @@
 """
 Redis scanner — service status, version, auth config, bind address, TLS.
 """
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import ScanResult, ServiceScanner
 
@@ -29,15 +29,15 @@ class RedisScanner(ServiceScanner):
         r = self._run(["redis-cli", "ping"])
         return r.ok() and "pong" in r.stdout.lower()
 
-    def _read_config(self) -> Dict[str, Any]:
+    def _read_config(self) -> dict[str, Any]:
         for path in ("/etc/redis/redis.conf", "/etc/redis.conf"):
             r = self._run(["cat", path])
             if r.ok() and r.stdout:
                 return self._parse_conf(r.stdout)
         return {}
 
-    def _parse_conf(self, text: str) -> Dict[str, Any]:
-        result: Dict[str, Any] = {}
+    def _parse_conf(self, text: str) -> dict[str, Any]:
+        result: dict[str, Any] = {}
         for line in text.splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
@@ -54,7 +54,7 @@ class RedisScanner(ServiceScanner):
             "tls_cert_file": result.get("tls-cert-file", ""),
         }
 
-    def _check_issues(self, active: bool, ping_ok: bool, config: Dict) -> List[str]:
+    def _check_issues(self, active: bool, ping_ok: bool, config: dict) -> list[str]:
         issues = []
         if not active:
             issues.append("redis is not running")

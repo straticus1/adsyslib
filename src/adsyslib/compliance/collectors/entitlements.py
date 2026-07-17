@@ -3,7 +3,7 @@ Entitlements collector — access/permission evidence.
 Maps to controls: AC-2, AC-3.
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.core import Shell
 from adsyslib.protocols import ShellProtocol
@@ -11,7 +11,7 @@ from adsyslib.protocols import ShellProtocol
 logger = logging.getLogger(__name__)
 
 
-def _local_groups(ctx: ShellProtocol) -> List[Dict[str, Any]]:
+def _local_groups(ctx: ShellProtocol) -> list[dict[str, Any]]:
     text = None
     result = ctx.run("getent group", check=False)
     if result.ok() and result.stdout:
@@ -31,14 +31,14 @@ def _local_groups(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     return groups
 
 
-def _ad_entitlements(ctx: ShellProtocol) -> Dict[str, Any]:
+def _ad_entitlements(ctx: ShellProtocol) -> dict[str, Any]:
     """
     Collect Active Directory entitlement evidence via Linux AD integration tools.
 
     Tries (in order): sssd/realm list → net ads → wbinfo (Samba/winbind).
     All commands run through ShellProtocol so they work over SSH.
     """
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "domain": None,
         "joined": False,
         "privileged_groups": [],
@@ -135,7 +135,7 @@ def _ad_entitlements(ctx: ShellProtocol) -> Dict[str, Any]:
     return result
 
 
-def _aws_iam(region: Optional[str], profile: Optional[str]) -> Dict[str, Any]:
+def _aws_iam(region: Optional[str], profile: Optional[str]) -> dict[str, Any]:
     try:
         import boto3
         session = boto3.Session(region_name=region, profile_name=profile)
@@ -176,10 +176,10 @@ def collect(
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
     include_ad: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Collect entitlement evidence."""
     ctx = ctx or Shell()
-    data: Dict[str, Any] = {"local_groups": _local_groups(ctx)}
+    data: dict[str, Any] = {"local_groups": _local_groups(ctx)}
     if include_aws:
         data["aws_iam"] = _aws_iam(aws_region, aws_profile)
     if include_ad:

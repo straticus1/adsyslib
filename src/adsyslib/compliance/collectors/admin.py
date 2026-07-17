@@ -4,7 +4,7 @@ Maps to controls: AC-6, CM-6, CM-7.
 """
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.core import Shell
 from adsyslib.protocols import ShellProtocol
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 _SUDOERS_GRANT_RE = re.compile(r"^(%?[\w][\w-]*\s|ALL\s)")
 
 
-def _parse_sudoers_text(text: str, source: str, lineno_offset: int = 1) -> List[Dict[str, Any]]:
+def _parse_sudoers_text(text: str, source: str, lineno_offset: int = 1) -> list[dict[str, Any]]:
     rules = []
     for i, line in enumerate(text.splitlines(), lineno_offset):
         stripped = line.strip()
@@ -30,7 +30,7 @@ def _parse_sudoers_text(text: str, source: str, lineno_offset: int = 1) -> List[
     return rules
 
 
-def _privileged_accounts(ctx: ShellProtocol) -> List[Dict[str, Any]]:
+def _privileged_accounts(ctx: ShellProtocol) -> list[dict[str, Any]]:
     text = None
     result = ctx.run("getent passwd", check=False)
     if result.ok() and result.stdout:
@@ -52,8 +52,8 @@ def _privileged_accounts(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     return accounts
 
 
-def _sshd_hardening(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> Dict[str, str]:
-    settings: Dict[str, str] = {}
+def _sshd_hardening(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> dict[str, str]:
+    settings: dict[str, str] = {}
     text = ctx.read_text(path) or ""
     for line in text.splitlines():
         stripped = line.strip()
@@ -71,7 +71,7 @@ def _sshd_hardening(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> D
     return {k: settings.get(k, "unknown") for k in keys}
 
 
-def collect(ctx: Optional[ShellProtocol] = None) -> Dict[str, Any]:
+def collect(ctx: Optional[ShellProtocol] = None) -> dict[str, Any]:
     """Collect administrative configuration evidence."""
     ctx = ctx or Shell()
 
@@ -83,7 +83,7 @@ def collect(ctx: Optional[ShellProtocol] = None) -> Dict[str, Any]:
             if not f.endswith("~")
         ]
 
-    rules: List[Dict[str, Any]] = []
+    rules: list[dict[str, Any]] = []
     for path in sudoers_files:
         text = ctx.read_text(path)
         if text:

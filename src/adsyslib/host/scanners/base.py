@@ -4,7 +4,7 @@ ServiceScanner base class.
 Each scanner wraps a RemoteShell and implements scan() → ScanResult.
 """
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass
@@ -12,15 +12,15 @@ class ScanResult:
     service: str
     active: bool
     version: str = ""
-    config: Dict[str, Any] = field(default_factory=dict)
-    issues: List[str] = field(default_factory=list)
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    raw: Dict[str, Any] = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
+    issues: list[str] = field(default_factory=list)
+    metrics: dict[str, Any] = field(default_factory=dict)
+    raw: dict[str, Any] = field(default_factory=dict)
 
     def ok(self) -> bool:
         return self.active and not self.issues
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "service": self.service,
             "active": self.active,

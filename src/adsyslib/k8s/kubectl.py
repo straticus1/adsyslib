@@ -4,7 +4,7 @@ Provides high-level methods for common kubectl operations.
 """
 import json
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from adsyslib.core import Shell
 
@@ -35,7 +35,7 @@ class KubectlRunner:
         self.kubeconfig = kubeconfig
         self.shell = Shell()
 
-    def _build_base_cmd(self, extra_args: List[str] = None) -> List[str]:
+    def _build_base_cmd(self, extra_args: list[str] = None) -> list[str]:
         """Build base kubectl command with context/namespace/kubeconfig."""
         cmd = ["kubectl"]
 
@@ -52,8 +52,8 @@ class KubectlRunner:
         return cmd
 
     def run_command(
-        self, args: List[str], check: bool = True, parse_json: bool = False
-    ) -> Union[Dict, List, str]:
+        self, args: list[str], check: bool = True, parse_json: bool = False
+    ) -> Union[dict, list, str]:
         """
         Run a kubectl command.
 
@@ -126,7 +126,7 @@ class KubectlRunner:
         namespace: Optional[str] = None,
         output: str = "json",
         all_namespaces: bool = False,
-    ) -> Union[Dict, List]:
+    ) -> Union[dict, list]:
         """
         Get resource(s).
 
@@ -170,7 +170,7 @@ class KubectlRunner:
         namespace: Optional[str] = None,
         label_selector: Optional[str] = None,
         field_selector: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List pods with optional filters.
 
@@ -233,7 +233,7 @@ class KubectlRunner:
     def exec(
         self,
         pod_name: str,
-        command: List[str],
+        command: list[str],
         namespace: Optional[str] = None,
         container: Optional[str] = None,
         stdin: bool = False,
@@ -350,7 +350,7 @@ class KubectlRunner:
         logger.warning(f"Deleting namespace: {name}")
         return self.run_command(["delete", "namespace", name])
 
-    def list_namespaces(self) -> List[Dict[str, Any]]:
+    def list_namespaces(self) -> list[dict[str, Any]]:
         """List all namespaces."""
         result = self.run_command(["get", "namespaces", "-o", "json"], parse_json=True)
         return result.get("items", []) if isinstance(result, dict) else []
@@ -367,14 +367,14 @@ class KubectlRunner:
         self.run_command(["config", "use-context", context])
         self.context = context
 
-    def list_contexts(self) -> List[str]:
+    def list_contexts(self) -> list[str]:
         """List available contexts."""
         result = self.run_command(["config", "get-contexts", "-o", "name"])
         return [ctx.strip() for ctx in result.split("\n") if ctx.strip()]
 
     # ==================== UTILITY METHODS ====================
 
-    def version(self) -> Dict[str, Any]:
+    def version(self) -> dict[str, Any]:
         """Get kubectl and server version."""
         return self.run_command(["version", "-o", "json"], parse_json=True)
 

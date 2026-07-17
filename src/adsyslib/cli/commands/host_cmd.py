@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import typer
 
@@ -22,7 +22,7 @@ def scan(
     key_file: Optional[str] = typer.Option(None, "--key-file", "-i", help="SSH private key"),
     password: Optional[str] = typer.Option(None, "--password", help="SSH password"),
     # Scanner options
-    services: List[str] = typer.Option(
+    services: list[str] = typer.Option(
         [], "--service", "-s",
         help="Service(s) to scan. Omit for all.",
     ),
@@ -96,7 +96,7 @@ def scan(
 @app.command("cluster")
 def cluster(
     context: Optional[str] = typer.Option(None, "--context", help="kubectl context"),
-    namespaces: List[str] = typer.Option([], "--namespace", "-n", help="Namespace(s) to scan. Omit for all."),
+    namespaces: list[str] = typer.Option([], "--namespace", "-n", help="Namespace(s) to scan. Omit for all."),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Save JSON report to file"),
     fmt: str = typer.Option("text", "--format", "-f", help="Output format: text or json"),
 ):
@@ -143,14 +143,14 @@ def cluster(
 
 @app.command("fleet")
 def fleet(
-    hosts: List[str] = typer.Argument(None, help="SSH hostnames or IPs"),
+    hosts: list[str] = typer.Argument(None, help="SSH hostnames or IPs"),
     user: str = typer.Option("root", "--user", "-u", help="SSH username"),
     key_file: Optional[str] = typer.Option(None, "--key-file", "-i", help="SSH private key"),
-    containers: List[str] = typer.Option([], "--container", "-c", help="Docker container name/ID (repeatable)"),
-    pods: List[str] = typer.Option([], "--pod", "-p", help="Kubernetes pod name (repeatable)"),
+    containers: list[str] = typer.Option([], "--container", "-c", help="Docker container name/ID (repeatable)"),
+    pods: list[str] = typer.Option([], "--pod", "-p", help="Kubernetes pod name (repeatable)"),
     pod_namespace: str = typer.Option("default", "--pod-namespace", help="Namespace for --pod targets"),
     kube_context: Optional[str] = typer.Option(None, "--kube-context", help="kubectl context for pod targets"),
-    services: List[str] = typer.Option([], "--service", "-s", help="Services to scan. Omit for all."),
+    services: list[str] = typer.Option([], "--service", "-s", help="Services to scan. Omit for all."),
     workers: int = typer.Option(10, "--workers", "-w", help="Parallel connections"),
     output: Optional[str] = typer.Option(None, "--output", "-o"),
     fmt: str = typer.Option("text", "--format", "-f", help="text or json"),

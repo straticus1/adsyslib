@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from adsyslib.core import ShellError, run
 
@@ -16,8 +16,8 @@ class AnsibleRunner:
     def run_playbook(
         self, 
         playbook_path: str, 
-        extra_vars: Dict[str, Any] = None, 
-        tags: List[str] = None,
+        extra_vars: dict[str, Any] = None, 
+        tags: list[str] = None,
         check: bool = False
     ):
         """

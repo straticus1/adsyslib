@@ -4,7 +4,7 @@ import shlex
 import subprocess
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +44,9 @@ class CollectionError(AdsysError):
     """Raised when compliance evidence collection fails irrecoverably."""
 
 def run(
-    cmd: Union[str, List[str]],
+    cmd: Union[str, list[str]],
     cwd: Optional[str] = None,
-    env: Optional[Dict[str, str]] = None,
+    env: Optional[dict[str, str]] = None,
     check: bool = False,
     timeout: Optional[float] = None,
     shell: bool = False,
@@ -70,7 +70,7 @@ def run(
         capture_output: Capture stdout/stderr (default True).
         text: Text mode for input/output (default True).
     """
-    args: Union[str, List[str]]
+    args: Union[str, list[str]]
     if isinstance(cmd, list):
         cmd_str = " ".join(shlex.quote(s) for s in cmd)
         args = cmd
@@ -143,11 +143,11 @@ class Shell:
     Stateful internal shell representation. 
     Keeps track of CWD and simulates a session.
     """
-    def __init__(self, cwd: Optional[str] = None, env: Optional[Dict[str, str]] = None):
+    def __init__(self, cwd: Optional[str] = None, env: Optional[dict[str, str]] = None):
         self.cwd = cwd or os.getcwd()
         self.env = env or os.environ.copy()
 
-    def run(self, cmd: Union[str, List[str]], check: bool = False, timeout: Optional[float] = None, shell: bool = False, **kwargs) -> CommandResult:
+    def run(self, cmd: Union[str, list[str]], check: bool = False, timeout: Optional[float] = None, shell: bool = False, **kwargs) -> CommandResult:
         """Run a command within the context of this shell (cwd/env)."""
         return run(cmd, cwd=self.cwd, env=self.env, check=check, timeout=timeout, shell=shell, **kwargs)
 
@@ -198,7 +198,7 @@ class Shell:
         except OSError:
             return None
 
-    def list_dir(self, path: str) -> List[str]:
+    def list_dir(self, path: str) -> list[str]:
         """Return directory entries, or [] if missing / not a directory."""
         try:
             return os.listdir(self._resolve(path))
@@ -211,7 +211,7 @@ class Shell:
     def is_dir(self, path: str) -> bool:
         return os.path.isdir(self._resolve(path))
 
-    def path_stat(self, path: str) -> Optional[Dict[str, object]]:
+    def path_stat(self, path: str) -> Optional[dict[str, object]]:
         """Return {permissions, owner_uid, mtime} or None."""
         try:
             s = os.stat(self._resolve(path))

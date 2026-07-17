@@ -1,7 +1,7 @@
 """
 MySQL/MariaDB scanner — service status, version, config, security settings.
 """
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import ScanResult, ServiceScanner
 
@@ -41,7 +41,7 @@ class MysqlScanner(ServiceScanner):
                 return r.stdout.splitlines()[0].strip()
         return ""
 
-    def _read_config(self) -> Dict[str, Any]:
+    def _read_config(self) -> dict[str, Any]:
         """Parse key security settings from my.cnf."""
         for path in ("/etc/mysql/my.cnf", "/etc/my.cnf", "/etc/mysql/mysql.conf.d/mysqld.cnf"):
             r = self._run(["cat", path])
@@ -49,8 +49,8 @@ class MysqlScanner(ServiceScanner):
                 return self._parse_cnf(r.stdout)
         return {}
 
-    def _parse_cnf(self, text: str) -> Dict[str, Any]:
-        result: Dict[str, Any] = {}
+    def _parse_cnf(self, text: str) -> dict[str, Any]:
+        result: dict[str, Any] = {}
         for line in text.splitlines():
             line = line.strip()
             if line.startswith("#") or "=" not in line:
@@ -66,7 +66,7 @@ class MysqlScanner(ServiceScanner):
             "require_secure_transport": result.get("require_secure_transport", ""),
         }
 
-    def _check_issues(self, active: bool, config: Dict) -> List[str]:
+    def _check_issues(self, active: bool, config: dict) -> list[str]:
         issues = []
         if not active:
             issues.append("mysql/mariadb is not running")

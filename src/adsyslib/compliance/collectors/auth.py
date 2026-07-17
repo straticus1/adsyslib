@@ -3,7 +3,7 @@ Auth collector — authentication configuration evidence.
 Maps to controls: IA-2, IA-5, AC-17.
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.core import Shell
 from adsyslib.protocols import ShellProtocol
@@ -11,8 +11,8 @@ from adsyslib.protocols import ShellProtocol
 logger = logging.getLogger(__name__)
 
 
-def _parse_kv_text(text: str, comment_char: str = "#") -> Dict[str, str]:
-    result: Dict[str, str] = {}
+def _parse_kv_text(text: str, comment_char: str = "#") -> dict[str, str]:
+    result: dict[str, str] = {}
     for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith(comment_char):
@@ -23,8 +23,8 @@ def _parse_kv_text(text: str, comment_char: str = "#") -> Dict[str, str]:
     return result
 
 
-def _detect_mfa(sshd: Dict[str, str], ctx: ShellProtocol) -> Dict[str, Any]:
-    mfa_modules: List[str] = []
+def _detect_mfa(sshd: dict[str, str], ctx: ShellProtocol) -> dict[str, Any]:
+    mfa_modules: list[str] = []
     for pam_path in ("/etc/pam.d/sshd", "/etc/pam.d/common-auth", "/etc/pam.d/system-auth"):
         content = ctx.read_text(pam_path)
         if content:
@@ -47,7 +47,7 @@ def collect(
     ctx: Optional[ShellProtocol] = None,
     sshd_config_path: str = "/etc/ssh/sshd_config",
     login_defs_path: str = "/etc/login.defs",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Collect authentication configuration evidence."""
     ctx = ctx or Shell()
 

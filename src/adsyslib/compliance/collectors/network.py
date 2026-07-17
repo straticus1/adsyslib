@@ -4,7 +4,7 @@ Maps to controls: SC-8.
 """
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.core import Shell
 from adsyslib.protocols import ShellProtocol
@@ -27,8 +27,8 @@ WEAK_KEX = frozenset([
 ])
 
 
-def _sshd_crypto(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> Dict[str, Any]:
-    settings: Dict[str, str] = {}
+def _sshd_crypto(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> dict[str, Any]:
+    settings: dict[str, str] = {}
     text = ctx.read_text(path) or ""
     for line in text.splitlines():
         stripped = line.strip()
@@ -38,7 +38,7 @@ def _sshd_crypto(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> Dict
         if len(parts) == 2:
             settings[parts[0].lower()] = parts[1]
 
-    def split_csv(val: str) -> List[str]:
+    def split_csv(val: str) -> list[str]:
         return [v.strip() for v in val.split(",") if v.strip()]
 
     ciphers = split_csv(settings.get("ciphers", ""))
@@ -56,8 +56,8 @@ def _sshd_crypto(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> Dict
     }
 
 
-def _tls_services(ctx: ShellProtocol) -> List[Dict[str, Any]]:
-    services: List[Dict[str, Any]] = []
+def _tls_services(ctx: ShellProtocol) -> list[dict[str, Any]]:
+    services: list[dict[str, Any]] = []
 
     result = ctx.run(["nginx", "-T"], check=False)
     if result.ok():
@@ -76,7 +76,7 @@ def _tls_services(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     return services
 
 
-def collect(ctx: Optional[ShellProtocol] = None) -> Dict[str, Any]:
+def collect(ctx: Optional[ShellProtocol] = None) -> dict[str, Any]:
     """Collect network security / TLS configuration evidence."""
     ctx = ctx or Shell()
     return {

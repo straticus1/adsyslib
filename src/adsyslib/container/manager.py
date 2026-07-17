@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 try:
     import docker
@@ -39,10 +39,10 @@ class DockerManager:
         image: str, 
         name: Optional[str] = None, 
         detach: bool = True,
-        ports: Optional[Dict[str, str]] = None,
-        env: Optional[Dict[str, str]] = None,
-        volumes: Optional[Dict[str, Dict[str, str]]] = None,
-        command: Optional[Union[str, List[str]]] = None,
+        ports: Optional[dict[str, str]] = None,
+        env: Optional[dict[str, str]] = None,
+        volumes: Optional[dict[str, dict[str, str]]] = None,
+        command: Optional[Union[str, list[str]]] = None,
         wait_for_log: Optional[str] = None,
         wait_timeout: int = 30,
         auto_remove: bool = False

@@ -25,7 +25,7 @@ Usage:
 """
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from adsyslib.remote import RemoteShell
 
@@ -82,7 +82,7 @@ class HostSession:
             host=host, user=user, port=port,
             key_file=key_file, password=password, timeout=timeout,
         )
-        self._scanners: Dict[str, Any] = {}
+        self._scanners: dict[str, Any] = {}
 
     @classmethod
     def _from_shell(cls, shell: Any, label: Optional[str] = None) -> "HostSession":
@@ -174,9 +174,9 @@ class HostSession:
     # Scan all
     # ------------------------------------------------------------------
 
-    def scan_all(self, services: Optional[List[str]] = None) -> "HostReport":
+    def scan_all(self, services: Optional[list[str]] = None) -> "HostReport":
         targets = services or list(_SCANNER_REGISTRY)
-        results: Dict[str, ScanResult] = {}
+        results: dict[str, ScanResult] = {}
         for name in targets:
             try:
                 results[name] = self._scanner(name).scan()
@@ -195,17 +195,17 @@ class HostSession:
 class HostReport:
     """Aggregated scan results for a single host/container/pod."""
 
-    def __init__(self, host: str, results: Dict[str, ScanResult]):
+    def __init__(self, host: str, results: dict[str, ScanResult]):
         self.host = host
         self.results = results
 
     def ok(self) -> bool:
         return all(r.ok() for r in self.results.values())
 
-    def issues(self) -> Dict[str, List[str]]:
+    def issues(self) -> dict[str, list[str]]:
         return {svc: r.issues for svc, r in self.results.items() if r.issues}
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         return {
             "host": self.host,
             "ok": self.ok(),
@@ -219,7 +219,7 @@ class HostReport:
             },
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "host": self.host,
             "services": {svc: r.to_dict() for svc, r in self.results.items()},
