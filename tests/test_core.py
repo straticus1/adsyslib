@@ -2,6 +2,7 @@
 Tests for core shell execution functionality.
 """
 import os
+import subprocess
 
 import pytest
 
@@ -75,7 +76,7 @@ def test_shell_env_management():
 
 def test_run_with_timeout():
     """Test that timeout works."""
-    with pytest.raises(Exception):  # subprocess.TimeoutExpired
+    with pytest.raises(subprocess.TimeoutExpired):
         run(["sleep", "10"], timeout=0.1)
 
 

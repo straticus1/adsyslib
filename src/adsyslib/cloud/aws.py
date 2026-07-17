@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any
+from typing import Any, Optional
 
 try:
     import boto3
@@ -15,7 +15,7 @@ class AWSProvider(CloudProvider):
     """
     AWS Implementation using boto3.
     """
-    def __init__(self, region_name: str = None, profile_name: str = None):
+    def __init__(self, region_name: Optional[str] = None, profile_name: Optional[str] = None):
         if boto3 is None:
             raise ImportError(
                 "boto3 is required for AWSProvider:\n"
@@ -25,7 +25,7 @@ class AWSProvider(CloudProvider):
         self.ec2 = self.session.client("ec2")
         self.s3 = self.session.client("s3")
 
-    def list_instances(self, region: str = None) -> list[dict[str, Any]]:
+    def list_instances(self, region: Optional[str] = None) -> list[dict[str, Any]]:
         # If region is specified, we might need a new client/resource
         client = self.ec2
         if region:
@@ -53,7 +53,7 @@ class AWSProvider(CloudProvider):
         logger.info(f"Stopping AWS instance {instance_id}")
         self.ec2.stop_instances(InstanceIds=[instance_id])
 
-    def upload_file(self, bucket: str, file_path: str, object_name: str = None):
+    def upload_file(self, bucket: str, file_path: str, object_name: Optional[str] = None):
         object_name = object_name or os.path.basename(file_path)
         logger.info(f"Uploading {file_path} to s3://{bucket}/{object_name}")
         self.s3.upload_file(file_path, bucket, object_name)

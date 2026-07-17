@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from adsyslib.core import ShellError, run
 
@@ -10,14 +10,14 @@ class AnsibleRunner:
     """
     Wrapper for ansible-playbook execution.
     """
-    def __init__(self, inventory: str = None):
+    def __init__(self, inventory: Optional[str] = None):
         self.inventory = inventory
 
     def run_playbook(
         self, 
         playbook_path: str, 
-        extra_vars: dict[str, Any] = None, 
-        tags: list[str] = None,
+        extra_vars: Optional[dict[str, Any]] = None, 
+        tags: Optional[list[str]] = None,
         check: bool = False
     ):
         """

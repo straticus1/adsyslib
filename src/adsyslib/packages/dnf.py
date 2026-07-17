@@ -1,5 +1,5 @@
 import logging
-from typing import Union
+from typing import Optional, Union
 
 from adsyslib.core import ShellError, run
 from adsyslib.packages.base import PackageManager
@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class Dnf(PackageManager):
     """DNF (RHEL/Fedora/Oracle Linux) package manager implementation."""
 
-    def __init__(self, use_sudo: bool = None):
+    def __init__(self, use_sudo: Optional[bool] = None):
         """
         Initialize DNF package manager.
 

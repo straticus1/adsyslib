@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 
 class CloudProvider(ABC):
@@ -9,7 +9,7 @@ class CloudProvider(ABC):
     """
 
     @abstractmethod
-    def list_instances(self, region: str = None) -> list[dict[str, Any]]:
+    def list_instances(self, region: Optional[str] = None) -> list[dict[str, Any]]:
         """List compute instances in a region."""
         pass
 
@@ -24,7 +24,7 @@ class CloudProvider(ABC):
         pass
 
     @abstractmethod
-    def upload_file(self, bucket: str, file_path: str, object_name: str = None):
+    def upload_file(self, bucket: str, file_path: str, object_name: Optional[str] = None):
         """Upload a file to object storage."""
         pass
 

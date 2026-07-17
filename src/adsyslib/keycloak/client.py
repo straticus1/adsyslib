@@ -21,8 +21,8 @@ class KeycloakClient:
         base_url: str,
         realm: str = "master",
         client_id: str = "admin-cli",
-        username: str = None,
-        password: str = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
         verify_ssl: bool = True,
     ):
         """
@@ -98,7 +98,7 @@ class KeycloakClient:
     # ==================== USER OPERATIONS ====================
 
     def list_users(
-        self, max_results: int = 100, search: str = None
+        self, max_results: int = 100, search: Optional[str] = None
     ) -> list[dict[str, Any]]:
         """
         List users in the realm.

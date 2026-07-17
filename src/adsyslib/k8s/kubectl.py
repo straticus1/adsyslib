@@ -35,7 +35,7 @@ class KubectlRunner:
         self.kubeconfig = kubeconfig
         self.shell = Shell()
 
-    def _build_base_cmd(self, extra_args: list[str] = None) -> list[str]:
+    def _build_base_cmd(self, extra_args: Optional[list[str]] = None) -> list[str]:
         """Build base kubectl command with context/namespace/kubeconfig."""
         cmd = ["kubectl"]
 

@@ -58,13 +58,12 @@ line-length = 100
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]  # ratchet: add B during per-module unification
+select = ["E", "F", "I", "UP", "RUF013"]  # ratchet: add B during per-module unification
 ignore = ["E501"]  # long lines grandfathered; formatter handles new code
 
 [tool.mypy]
 python_version = "3.9"
 ignore_missing_imports = true
-implicit_optional = true  # ratchet: codebase uses `param: str = None`; fix signatures then drop
 warn_unused_ignores = true
 # Lenient baseline; per-module strictness ratchets up during the unification phase
 # (see docs/plans/2026-07-16-adsyslib-overhaul-design.md).

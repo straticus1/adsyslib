@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import Optional
 
 try:
     import pexpect
@@ -13,7 +14,7 @@ class InteractiveSession:
     Wrapper around pexpect to automate interactive CLI tools.
     Supports "smart fill" where you define prompts and their responses.
     """
-    def __init__(self, command: str, args: list[str] = None, timeout: int = 30, log_output: bool = True):
+    def __init__(self, command: str, args: Optional[list[str]] = None, timeout: int = 30, log_output: bool = True):
         if pexpect is None:
             raise ImportError(
                 "pexpect is required for InteractiveSession:\n"

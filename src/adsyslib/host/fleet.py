@@ -96,7 +96,7 @@ class FleetReport:
         print(f"Fleet Report: {ok_count}/{total} hosts OK")
         print(f"{'='*60}")
 
-        for host, report in sorted(self.host_reports.items()):
+        for _host, report in sorted(self.host_reports.items()):
             report.print_summary()
 
         if self.errors:

@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any
+from typing import Any, Optional
 
 try:
     import oci
@@ -16,7 +16,7 @@ class OracleProvider(CloudProvider):
     Oracle Cloud Infrastructure (OCI) Implementation.
     Requires ~/.oci/config or standard OCI environment variables.
     """
-    def __init__(self, config_file: str = None, profile: str = "DEFAULT"):
+    def __init__(self, config_file: Optional[str] = None, profile: str = "DEFAULT"):
         if oci is None:
             raise ImportError(
                 "oci is required for OracleProvider:\n"
@@ -35,7 +35,7 @@ class OracleProvider(CloudProvider):
         # For simplicity, we assume user passes compartment_id in methods or we fetch tenancy root.
         self.tenancy_id = self.config["tenancy"]
 
-    def list_instances(self, region: str = None) -> list[dict[str, Any]]:
+    def list_instances(self, region: Optional[str] = None) -> list[dict[str, Any]]:
         # OCI listing requires compartment ID. 
         # listing ALL instances in tenancy is expensive (recursive).
         # We'll list in the root compartment for now as a default.
@@ -66,7 +66,7 @@ class OracleProvider(CloudProvider):
         logger.info(f"Stopping OCI instance {instance_id}")
         self.compute_client.instance_action(instance_id, "STOP")
 
-    def upload_file(self, bucket: str, file_path: str, object_name: str = None):
+    def upload_file(self, bucket: str, file_path: str, object_name: Optional[str] = None):
         object_name = object_name or os.path.basename(file_path)
         namespace = self.object_storage_client.get_namespace().data
         logger.info(f"Uploading {file_path} to OCI bucket {bucket}")

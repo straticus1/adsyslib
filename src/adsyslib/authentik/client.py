@@ -3,7 +3,7 @@ Authentik Identity Provider Management.
 High-level wrapper around authentik-client for managing users, groups, applications, and providers.
 """
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import requests
 
@@ -48,7 +48,7 @@ class AuthentikClient:
 
     # ==================== USERS ====================
     
-    def list_users(self, search: str = None) -> list[dict[str, Any]]:
+    def list_users(self, search: Optional[str] = None) -> list[dict[str, Any]]:
         """List all users, optionally filtered by search term."""
         params = {}
         if search:
@@ -64,10 +64,10 @@ class AuthentikClient:
         self, 
         username: str, 
         name: str, 
-        email: str = None,
+        email: Optional[str] = None,
         is_active: bool = True,
-        groups: list[str] = None,
-        attributes: dict[str, Any] = None
+        groups: Optional[list[str]] = None,
+        attributes: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """
         Create a new user.
@@ -112,7 +112,7 @@ class AuthentikClient:
 
     # ==================== GROUPS ====================
 
-    def list_groups(self, search: str = None) -> list[dict[str, Any]]:
+    def list_groups(self, search: Optional[str] = None) -> list[dict[str, Any]]:
         """List all groups."""
         params = {}
         if search:
@@ -128,8 +128,8 @@ class AuthentikClient:
         self, 
         name: str, 
         is_superuser: bool = False,
-        parent: str = None,
-        attributes: dict[str, Any] = None
+        parent: Optional[str] = None,
+        attributes: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """Create a new group."""
         data = {
@@ -182,8 +182,8 @@ class AuthentikClient:
         self,
         name: str,
         slug: str,
-        provider: int = None,
-        meta_launch_url: str = None,
+        provider: Optional[int] = None,
+        meta_launch_url: Optional[str] = None,
         open_in_new_tab: bool = False
     ) -> dict[str, Any]:
         """Create a new application."""
@@ -207,7 +207,7 @@ class AuthentikClient:
 
     # ==================== PROVIDERS ====================
 
-    def list_providers(self, provider_type: str = None) -> list[dict[str, Any]]:
+    def list_providers(self, provider_type: Optional[str] = None) -> list[dict[str, Any]]:
         """
         List providers.
         
@@ -226,9 +226,9 @@ class AuthentikClient:
         name: str,
         authorization_flow: str,
         client_type: str = "confidential",
-        client_id: str = None,
-        client_secret: str = None,
-        redirect_uris: str = None
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        redirect_uris: Optional[str] = None
     ) -> dict[str, Any]:
         """Create an OAuth2 provider."""
         data = {
@@ -276,7 +276,7 @@ class AuthentikClient:
 
     # ==================== TOKENS ====================
 
-    def list_tokens(self, user_id: int = None) -> list[dict[str, Any]]:
+    def list_tokens(self, user_id: Optional[int] = None) -> list[dict[str, Any]]:
         """List API tokens, optionally filtered by user."""
         params = {}
         if user_id:
@@ -290,7 +290,7 @@ class AuthentikClient:
         user: int,
         intent: str = "api",
         expiring: bool = True,
-        description: str = None
+        description: Optional[str] = None
     ) -> dict[str, Any]:
         """Create an API token for a user."""
         data = {

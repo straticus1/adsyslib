@@ -17,7 +17,7 @@ class DockerManager:
     High-level wrapper around docker-py for 10x developer experience.
     Handles connection, running containers with health checks, and cleanup.
     """
-    def __init__(self, base_url: str = None):
+    def __init__(self, base_url: Optional[str] = None):
         if docker is None:
             raise ImportError(
                 "docker (docker-py) is required for DockerManager:\n"
