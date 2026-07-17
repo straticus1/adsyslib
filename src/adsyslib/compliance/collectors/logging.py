@@ -5,12 +5,13 @@ Maps to controls: AU-2, AU-9.
 import logging
 from typing import Any, Dict, List, Optional
 
-from adsyslib.compliance.context import CollectionContext, LocalContext
+from adsyslib.core import Shell
+from adsyslib.protocols import ShellProtocol
 
 logger = logging.getLogger(__name__)
 
 
-def _auditd_status(ctx: CollectionContext) -> Dict[str, Any]:
+def _auditd_status(ctx: ShellProtocol) -> Dict[str, Any]:
     result = ctx.run(["systemctl", "is-active", "auditd"], check=False)
     active = result.stdout.strip() == "active"
 
@@ -20,7 +21,7 @@ def _auditd_status(ctx: CollectionContext) -> Dict[str, Any]:
     return {"active": active, "rules_count": len(rules), "rules": rules[:20]}
 
 
-def _syslog_status(ctx: CollectionContext) -> Dict[str, Any]:
+def _syslog_status(ctx: ShellProtocol) -> Dict[str, Any]:
     for svc in ("rsyslog", "syslog-ng", "syslogd"):
         result = ctx.run(["systemctl", "is-active", svc], check=False)
         if result.stdout.strip() == "active":
@@ -28,7 +29,7 @@ def _syslog_status(ctx: CollectionContext) -> Dict[str, Any]:
     return {"service": None, "active": False}
 
 
-def _log_forwarding(ctx: CollectionContext) -> Dict[str, Any]:
+def _log_forwarding(ctx: ShellProtocol) -> Dict[str, Any]:
     targets: List[Dict[str, str]] = []
     paths_to_check: List[str] = []
 
@@ -53,7 +54,7 @@ def _log_forwarding(ctx: CollectionContext) -> Dict[str, Any]:
     return {"remote_targets": targets, "forwarding_configured": bool(targets)}
 
 
-def _audit_log_permissions(ctx: CollectionContext) -> Dict[str, Any]:
+def _audit_log_permissions(ctx: ShellProtocol) -> Dict[str, Any]:
     log_dir = "/var/log/audit"
     if not ctx.path_exists(log_dir):
         return {"path": log_dir, "exists": False}
@@ -68,9 +69,9 @@ def _audit_log_permissions(ctx: CollectionContext) -> Dict[str, Any]:
     }
 
 
-def collect(ctx: Optional[CollectionContext] = None) -> Dict[str, Any]:
+def collect(ctx: Optional[ShellProtocol] = None) -> Dict[str, Any]:
     """Collect audit logging configuration evidence."""
-    ctx = ctx or LocalContext()
+    ctx = ctx or Shell()
     return {
         "auditd": _auditd_status(ctx),
         "syslog": _syslog_status(ctx),

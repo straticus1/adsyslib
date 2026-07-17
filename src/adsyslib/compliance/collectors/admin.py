@@ -6,7 +6,8 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from adsyslib.compliance.context import CollectionContext, LocalContext
+from adsyslib.core import Shell
+from adsyslib.protocols import ShellProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ def _parse_sudoers_text(text: str, source: str, lineno_offset: int = 1) -> List[
     return rules
 
 
-def _privileged_accounts(ctx: CollectionContext) -> List[Dict[str, Any]]:
+def _privileged_accounts(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     text = None
     result = ctx.run("getent passwd", check=False)
     if result.ok() and result.stdout:
@@ -51,7 +52,7 @@ def _privileged_accounts(ctx: CollectionContext) -> List[Dict[str, Any]]:
     return accounts
 
 
-def _sshd_hardening(ctx: CollectionContext, path: str = "/etc/ssh/sshd_config") -> Dict[str, str]:
+def _sshd_hardening(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> Dict[str, str]:
     settings: Dict[str, str] = {}
     text = ctx.read_text(path) or ""
     for line in text.splitlines():
@@ -70,9 +71,9 @@ def _sshd_hardening(ctx: CollectionContext, path: str = "/etc/ssh/sshd_config") 
     return {k: settings.get(k, "unknown") for k in keys}
 
 
-def collect(ctx: Optional[CollectionContext] = None) -> Dict[str, Any]:
+def collect(ctx: Optional[ShellProtocol] = None) -> Dict[str, Any]:
     """Collect administrative configuration evidence."""
-    ctx = ctx or LocalContext()
+    ctx = ctx or Shell()
 
     sudoers_files = ["/etc/sudoers"]
     if ctx.is_dir("/etc/sudoers.d"):

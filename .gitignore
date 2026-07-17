@@ -15,3 +15,6 @@ env/
 *.log
 *.json.bak
 .DS_Store
+
+# oh-my-claudecode operational state
+.omc/

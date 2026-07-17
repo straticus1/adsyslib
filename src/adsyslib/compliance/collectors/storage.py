@@ -6,12 +6,13 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from adsyslib.compliance.context import CollectionContext, LocalContext
+from adsyslib.core import Shell
+from adsyslib.protocols import ShellProtocol
 
 logger = logging.getLogger(__name__)
 
 
-def _luks_volumes(ctx: CollectionContext) -> List[Dict[str, Any]]:
+def _luks_volumes(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     result = ctx.run(["lsblk", "-o", "NAME,TYPE,FSTYPE,MOUNTPOINT", "--json"], check=False)
     if not result.ok():
         return []
@@ -39,7 +40,7 @@ def _luks_volumes(ctx: CollectionContext) -> List[Dict[str, Any]]:
     return luks
 
 
-def _crypttab(ctx: CollectionContext) -> List[Dict[str, Any]]:
+def _crypttab(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     entries: List[Dict[str, Any]] = []
     text = ctx.read_text("/etc/crypttab") or ""
     for line in text.splitlines():
@@ -55,9 +56,9 @@ def _crypttab(ctx: CollectionContext) -> List[Dict[str, Any]]:
     return entries
 
 
-def collect(ctx: Optional[CollectionContext] = None) -> Dict[str, Any]:
+def collect(ctx: Optional[ShellProtocol] = None) -> Dict[str, Any]:
     """Collect encryption-at-rest evidence."""
-    ctx = ctx or LocalContext()
+    ctx = ctx or Shell()
     luks = _luks_volumes(ctx)
     crypt = _crypttab(ctx)
     return {

@@ -7,7 +7,7 @@ scanners work inside containers without modification.
 import logging
 from typing import Any, Dict, List, Optional
 
-from adsyslib.core import CommandResult
+from adsyslib.core import CommandResult, ShellConnectionError
 from adsyslib.core import run as _run
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class DockerShell:
         # Verify the container is actually running
         r = _run([self._docker, "inspect", "--format", "{{.State.Running}}", self.container])
         if not r.ok() or r.stdout.strip() != "true":
-            raise RuntimeError(f"Container '{self.container}' is not running")
+            raise ShellConnectionError(f"Container '{self.container}' is not running")
         logger.info(f"Attached to container {self.container}")
         return self
 

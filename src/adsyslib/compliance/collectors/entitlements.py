@@ -5,12 +5,13 @@ Maps to controls: AC-2, AC-3.
 import logging
 from typing import Any, Dict, List, Optional
 
-from adsyslib.compliance.context import CollectionContext, LocalContext
+from adsyslib.core import Shell
+from adsyslib.protocols import ShellProtocol
 
 logger = logging.getLogger(__name__)
 
 
-def _local_groups(ctx: CollectionContext) -> List[Dict[str, Any]]:
+def _local_groups(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     text = None
     result = ctx.run("getent group", check=False)
     if result.ok() and result.stdout:
@@ -30,12 +31,12 @@ def _local_groups(ctx: CollectionContext) -> List[Dict[str, Any]]:
     return groups
 
 
-def _ad_entitlements(ctx: CollectionContext) -> Dict[str, Any]:
+def _ad_entitlements(ctx: ShellProtocol) -> Dict[str, Any]:
     """
     Collect Active Directory entitlement evidence via Linux AD integration tools.
 
     Tries (in order): sssd/realm list → net ads → wbinfo (Samba/winbind).
-    All commands run through CollectionContext so they work over SSH.
+    All commands run through ShellProtocol so they work over SSH.
     """
     result: Dict[str, Any] = {
         "domain": None,
@@ -170,14 +171,14 @@ def _aws_iam(region: Optional[str], profile: Optional[str]) -> Dict[str, Any]:
 
 
 def collect(
-    ctx: Optional[CollectionContext] = None,
+    ctx: Optional[ShellProtocol] = None,
     include_aws: bool = False,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
     include_ad: bool = False,
 ) -> Dict[str, Any]:
     """Collect entitlement evidence."""
-    ctx = ctx or LocalContext()
+    ctx = ctx or Shell()
     data: Dict[str, Any] = {"local_groups": _local_groups(ctx)}
     if include_aws:
         data["aws_iam"] = _aws_iam(aws_region, aws_profile)

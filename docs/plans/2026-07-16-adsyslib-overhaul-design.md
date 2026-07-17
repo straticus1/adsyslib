@@ -80,6 +80,23 @@ Scoped in detail when Phase 2 completes.
 API-surface review (`__all__`, deprecation policy), docs site, semver + changelog,
 PyPI publishing via CI trusted publisher.
 
+## Phase 5 — Starlark plugin layer (decided 2026-07-16)
+
+Embed Starlark via `python-starlark-go` so SOC/NOC/CloudOps authors can write
+higher-level plugins without touching the Python core. Chosen over JavaScript because
+Starlark's syntax is Python, and the language is deterministic and hermetically sandboxed
+(no I/O, no imports, no unbounded loops) — an inexperienced author cannot hang a scan or
+exfiltrate from inside a plugin.
+
+**Plugin model: pure evaluators.** `python-starlark-go` marshals data (dict/list/str/int)
+in and out but cannot expose Python callables to Starlark. So adsyslib collects evidence
+(shells/collectors/scanners), passes the evidence dict to the plugin, and the plugin
+returns findings/verdicts — e.g. custom compliance controls, scan-issue rules, fleet
+triage policies. Deterministic, auditable, side-effect-free. If action-taking plugins are
+ever needed, add a Python-side verb allowlist driven by plugin return values; never
+expose the core. Lands after Phase 2 (needs the stable evidence schemas), can run in
+parallel with Phase 3.
+
 ## Open questions (defaults chosen, cheap to reverse)
 
 1. **Deprecated context aliases vs. hard delete** — default: keep `LocalContext`/

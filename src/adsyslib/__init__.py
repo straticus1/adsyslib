@@ -25,7 +25,14 @@ from adsyslib.compliance import (
     compare_packages,
     load_package,
 )
-from adsyslib.core import CommandResult, Shell, ShellError, run
+from adsyslib.core import (
+    AdsysError,
+    CommandResult,
+    Shell,
+    ShellConnectionError,
+    ShellError,
+    run,
+)
 
 # Host scanning
 from adsyslib.host import HostReport, HostSession, ssh_to_host
@@ -39,12 +46,18 @@ from adsyslib.io_utils import IOCatcher, capture_io
 # Logging
 from adsyslib.logger import configure_logging, get_logger
 
+# Protocol
+from adsyslib.protocols import ShellProtocol
+
 __all__ = [
     # Core
     "run",
-    "Shell", 
+    "Shell",
     "CommandResult",
+    "ShellProtocol",
+    "AdsysError",
     "ShellError",
+    "ShellConnectionError",
     # Logging
     "configure_logging",
     "get_logger",

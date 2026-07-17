@@ -8,12 +8,13 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from adsyslib.compliance.context import CollectionContext, LocalContext
+from adsyslib.core import Shell
+from adsyslib.protocols import ShellProtocol
 
 logger = logging.getLogger(__name__)
 
 
-def _ansible_evidence(log_path: str, ctx: CollectionContext) -> Dict[str, Any]:
+def _ansible_evidence(log_path: str, ctx: ShellProtocol) -> Dict[str, Any]:
     log_exists = ctx.path_exists(log_path)
     last_run: Optional[str] = None
     if log_exists:
@@ -26,7 +27,7 @@ def _ansible_evidence(log_path: str, ctx: CollectionContext) -> Dict[str, Any]:
     return {"log_path": log_path, "log_exists": log_exists, "last_run": last_run}
 
 
-def _terraform_evidence(state_paths: List[str], ctx: CollectionContext) -> Dict[str, Any]:
+def _terraform_evidence(state_paths: List[str], ctx: ShellProtocol) -> Dict[str, Any]:
     for path in state_paths:
         if not ctx.path_exists(path):
             continue
@@ -50,7 +51,7 @@ def _terraform_evidence(state_paths: List[str], ctx: CollectionContext) -> Dict[
     return {}
 
 
-def _git_evidence(search_paths: List[str], ctx: CollectionContext) -> List[Dict[str, Any]]:
+def _git_evidence(search_paths: List[str], ctx: ShellProtocol) -> List[Dict[str, Any]]:
     repos = []
     for path in search_paths:
         if not ctx.is_dir(path):
@@ -73,13 +74,13 @@ def _git_evidence(search_paths: List[str], ctx: CollectionContext) -> List[Dict[
 
 
 def collect(
-    ctx: Optional[CollectionContext] = None,
+    ctx: Optional[ShellProtocol] = None,
     ansible_log: str = "/var/log/ansible.log",
     terraform_state_paths: Optional[List[str]] = None,
     git_config_paths: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Collect config management proof artifacts."""
-    ctx = ctx or LocalContext()
+    ctx = ctx or Shell()
 
     if terraform_state_paths is None:
         terraform_state_paths = ["terraform.tfstate", ".terraform/terraform.tfstate"]

@@ -6,7 +6,8 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from adsyslib.compliance.context import CollectionContext, LocalContext
+from adsyslib.core import Shell
+from adsyslib.protocols import ShellProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ WEAK_KEX = frozenset([
 ])
 
 
-def _sshd_crypto(ctx: CollectionContext, path: str = "/etc/ssh/sshd_config") -> Dict[str, Any]:
+def _sshd_crypto(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> Dict[str, Any]:
     settings: Dict[str, str] = {}
     text = ctx.read_text(path) or ""
     for line in text.splitlines():
@@ -55,7 +56,7 @@ def _sshd_crypto(ctx: CollectionContext, path: str = "/etc/ssh/sshd_config") -> 
     }
 
 
-def _tls_services(ctx: CollectionContext) -> List[Dict[str, Any]]:
+def _tls_services(ctx: ShellProtocol) -> List[Dict[str, Any]]:
     services = []
 
     result = ctx.run(["nginx", "-T"], check=False)
@@ -75,9 +76,9 @@ def _tls_services(ctx: CollectionContext) -> List[Dict[str, Any]]:
     return services
 
 
-def collect(ctx: Optional[CollectionContext] = None) -> Dict[str, Any]:
+def collect(ctx: Optional[ShellProtocol] = None) -> Dict[str, Any]:
     """Collect network security / TLS configuration evidence."""
-    ctx = ctx or LocalContext()
+    ctx = ctx or Shell()
     return {
         "sshd_crypto": _sshd_crypto(ctx),
         "tls_services": _tls_services(ctx),

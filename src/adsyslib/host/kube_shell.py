@@ -7,7 +7,7 @@ scanners work inside pods without modification.
 import logging
 from typing import Any, Dict, List, Optional
 
-from adsyslib.core import CommandResult
+from adsyslib.core import CommandResult, ShellConnectionError
 from adsyslib.core import run as _run
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class KubeShell:
         ])
         phase = r.stdout.strip()
         if not r.ok() or phase != "Running":
-            raise RuntimeError(f"Pod '{self.namespace}/{self.pod}' is not Running (phase={phase!r})")
+            raise ShellConnectionError(f"Pod '{self.namespace}/{self.pod}' is not Running (phase={phase!r})")
         logger.info(f"Attached to pod {self.namespace}/{self.pod}")
         return self
 

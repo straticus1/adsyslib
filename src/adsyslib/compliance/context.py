@@ -1,82 +1,47 @@
 """
-CollectionContext — abstracts local vs. remote command execution and file I/O.
+DEPRECATED — collectors now accept any ShellProtocol object directly.
 
-Every collector accepts an optional ctx parameter. Pass a RemoteContext to
-run the same collector logic against a remote host over SSH.
+This module remains as a compatibility shim for one release cycle. Instead of:
+
+    collect(ctx=LocalContext())                  # old
+    collect(ctx=RemoteContext(remote_shell))     # old
+
+pass the shell itself:
+
+    collect(ctx=Shell())            # local
+    collect(ctx=remote_shell)       # SSH — RemoteShell already satisfies ShellProtocol
 """
-import os
+import warnings
 from typing import Any, Dict, List, Optional
 
-from adsyslib.core import CommandResult
-from adsyslib.core import run as _local_run
+from adsyslib.core import CommandResult, Shell
+from adsyslib.protocols import ShellProtocol
+
+# Kept as an alias so existing type hints / isinstance checks keep working.
+CollectionContext = ShellProtocol
 
 
-class CollectionContext:
-    """Abstract base — implement run, read_text, list_dir, is_dir, path_exists, path_stat."""
-
-    def run(self, cmd, check: bool = False, **kwargs) -> CommandResult:
-        raise NotImplementedError
-
-    def read_text(self, path: str) -> Optional[str]:
-        """Return file contents or None if missing / permission denied."""
-        raise NotImplementedError
-
-    def list_dir(self, path: str) -> List[str]:
-        """Return directory entries or [] if missing."""
-        raise NotImplementedError
-
-    def is_dir(self, path: str) -> bool:
-        raise NotImplementedError
-
-    def path_exists(self, path: str) -> bool:
-        raise NotImplementedError
-
-    def path_stat(self, path: str) -> Optional[Dict[str, Any]]:
-        """Return dict with permissions (oct str), owner_uid, mtime — or None."""
-        raise NotImplementedError
+def _warn(old: str, new: str) -> None:
+    warnings.warn(
+        f"{old} is deprecated; {new}. See adsyslib.protocols.ShellProtocol.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
 
 
-class LocalContext(CollectionContext):
-    """Runs everything in the current process on the local machine."""
+class LocalContext(Shell):
+    """DEPRECATED: use adsyslib.core.Shell directly."""
 
-    def run(self, cmd, check: bool = False, **kwargs) -> CommandResult:
-        return _local_run(cmd, check=check, **kwargs)
-
-    def read_text(self, path: str) -> Optional[str]:
-        try:
-            with open(path, encoding="utf-8", errors="replace") as f:
-                return f.read()
-        except (FileNotFoundError, PermissionError):
-            return None
-
-    def list_dir(self, path: str) -> List[str]:
-        try:
-            return os.listdir(path)
-        except (FileNotFoundError, PermissionError, NotADirectoryError):
-            return []
-
-    def is_dir(self, path: str) -> bool:
-        return os.path.isdir(path)
-
-    def path_exists(self, path: str) -> bool:
-        return os.path.exists(path)
-
-    def path_stat(self, path: str) -> Optional[Dict[str, Any]]:
-        try:
-            s = os.stat(path)
-            return {
-                "permissions": oct(s.st_mode)[-3:],
-                "owner_uid": s.st_uid,
-                "mtime": s.st_mtime,
-            }
-        except (FileNotFoundError, PermissionError):
-            return None
+    def __init__(self) -> None:
+        _warn("LocalContext", "use adsyslib.core.Shell()")
+        super().__init__()
 
 
-class RemoteContext(CollectionContext):
-    """Wraps a RemoteShell to implement CollectionContext over SSH."""
+class RemoteContext:
+    """DEPRECATED: pass the RemoteShell itself — it already satisfies ShellProtocol."""
 
-    def __init__(self, shell: Any):  # shell: adsyslib.remote.RemoteShell
+    def __init__(self, shell: Any):
+        _warn("RemoteContext", "pass the RemoteShell directly")
         self._shell = shell
 
     def run(self, cmd, check: bool = False, **kwargs) -> CommandResult:
@@ -96,3 +61,9 @@ class RemoteContext(CollectionContext):
 
     def path_stat(self, path: str) -> Optional[Dict[str, Any]]:
         return self._shell.path_stat(path)
+
+    def connect(self):
+        return self._shell.connect()
+
+    def disconnect(self) -> None:
+        self._shell.disconnect()

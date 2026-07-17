@@ -5,7 +5,8 @@ Maps to controls: IA-2, IA-5, AC-17.
 import logging
 from typing import Any, Dict, List, Optional
 
-from adsyslib.compliance.context import CollectionContext, LocalContext
+from adsyslib.core import Shell
+from adsyslib.protocols import ShellProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ def _parse_kv_text(text: str, comment_char: str = "#") -> Dict[str, str]:
     return result
 
 
-def _detect_mfa(sshd: Dict[str, str], ctx: CollectionContext) -> Dict[str, Any]:
+def _detect_mfa(sshd: Dict[str, str], ctx: ShellProtocol) -> Dict[str, Any]:
     mfa_modules: List[str] = []
     for pam_path in ("/etc/pam.d/sshd", "/etc/pam.d/common-auth", "/etc/pam.d/system-auth"):
         content = ctx.read_text(pam_path)
@@ -43,12 +44,12 @@ def _detect_mfa(sshd: Dict[str, str], ctx: CollectionContext) -> Dict[str, Any]:
 
 
 def collect(
-    ctx: Optional[CollectionContext] = None,
+    ctx: Optional[ShellProtocol] = None,
     sshd_config_path: str = "/etc/ssh/sshd_config",
     login_defs_path: str = "/etc/login.defs",
 ) -> Dict[str, Any]:
     """Collect authentication configuration evidence."""
-    ctx = ctx or LocalContext()
+    ctx = ctx or Shell()
 
     sshd = _parse_kv_text(ctx.read_text(sshd_config_path) or "")
     login_defs = _parse_kv_text(ctx.read_text(login_defs_path) or "")

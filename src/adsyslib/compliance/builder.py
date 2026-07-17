@@ -4,9 +4,11 @@ Orchestrates collectors → evaluates controls → builds an AuditPackage.
 import logging
 from typing import Any, Dict, List, Optional
 
+from adsyslib.core import Shell
+from adsyslib.protocols import ShellProtocol
+
 from .collectors import admin, auth, config_mgmt, entitlements, network, patching, storage
 from .collectors import logging as logging_col
-from .context import CollectionContext, LocalContext, RemoteContext
 from .controls import control_title, get_controls_for_frameworks
 from .package import AuditPackage, ControlResult
 
@@ -391,7 +393,8 @@ def build_package(
         terraform_state_paths: Paths to search for terraform state files.
         git_config_paths: Directories to check for git-managed config.
     """
-    ctx: CollectionContext = RemoteContext(target) if target else LocalContext()
+    # Any ShellProtocol works here — RemoteShell, DockerShell, KubeShell, or local Shell.
+    ctx: ShellProtocol = target if target else Shell()
     label = f"{target.user}@{target.host}" if target else "localhost"
     logger.info(f"Building audit package for {label} — frameworks: {frameworks}")
 
