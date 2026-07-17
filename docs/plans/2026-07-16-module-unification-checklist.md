@@ -42,9 +42,13 @@ exemplar; remaining modules follow the same steps.
 | cloud | ✅ | not measured | lazy boto3/oci done (step 5) |
 | iac | ✅ | not measured | not yet through checklist |
 | logger, io_utils, interact | ✅ | not measured | lazy pexpect done |
-| k8s.kubectl | ❌ 18 errors | — | next ratchet target |
-| authentik (client, oauth, cmd) | ❌ | — | grandfathered |
-| keycloak (client, migrate) | ❌ | — | grandfathered |
+| k8s.kubectl | ✅ | not measured | run_command/run_command_json split |
+| authentik (client, oauth, cmd) | ✅ | not measured | steps 2–8 pending |
+| keycloak (client, migrate) | ✅ | not measured | steps 2–8 pending |
+
+**The mypy ratchet list is empty (2026-07-16)** — `mypy src/adsyslib` is clean with no
+grandfathered modules. Remaining type-strictness ratchets: untyped defs (step 2) and the
+global `implicit_optional` flag.
 
 Ruff `UP` rules are now in the gate codebase-wide; `B` (bugbear) is the next rule-set
 ratchet. Global `implicit_optional = true` in mypy config is the other standing ratchet —

@@ -67,7 +67,7 @@ def create_user(
         console.print(f"[bold green]Created user:[/bold green] {user.get('username')} (ID: {user.get('pk')})")
         
         if password:
-            client.set_user_password(user.get("pk"), password)
+            client.set_user_password(user["pk"], password)
             console.print("[green]Password set.[/green]")
     except Exception as e:
         console.print(f"[bold red]Failed:[/bold red] {e}")

@@ -42,7 +42,7 @@ class KeycloakToAuthentikMigrator:
         self.authentik = authentik_client
         self.default_password = default_password
         self.dry_run = dry_run
-        self.migration_report = {
+        self.migration_report: dict[str, Any] = {
             "users_migrated": 0,
             "users_failed": 0,
             "groups_migrated": 0,

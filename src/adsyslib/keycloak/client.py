@@ -110,7 +110,7 @@ class KeycloakClient:
         Returns:
             List of user dictionaries
         """
-        params = {"max": max_results}
+        params: dict[str, Any] = {"max": max_results}
         if search:
             params["search"] = search
 
@@ -192,7 +192,7 @@ class KeycloakClient:
         """
         logger.info(f"Exporting realm: {self.realm}")
 
-        export_data = {
+        export_data: dict[str, Any] = {
             "realm": self.get_realm(),
             "users": [],
             "groups": self.list_groups(),

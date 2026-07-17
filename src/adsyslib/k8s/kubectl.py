@@ -4,7 +4,7 @@ Provides high-level methods for common kubectl operations.
 """
 import json
 import logging
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from adsyslib.core import Shell
 
@@ -51,30 +51,32 @@ class KubectlRunner:
 
         return cmd
 
-    def run_command(
-        self, args: list[str], check: bool = True, parse_json: bool = False
-    ) -> Union[dict, list, str]:
+    def run_command(self, args: list[str], check: bool = True) -> str:
         """
-        Run a kubectl command.
+        Run a kubectl command and return its stdout.
 
         Args:
             args: Command arguments (without 'kubectl')
             check: Raise error on failure
-            parse_json: Parse output as JSON
-
-        Returns:
-            Command output (parsed JSON if parse_json=True, otherwise string)
         """
         cmd = self._build_base_cmd(args)
         result = self.shell.run(cmd, check=check)
+        return result.stdout
 
-        if parse_json and result.ok():
+    def run_command_json(self, args: list[str], check: bool = True) -> Any:
+        """
+        Run a kubectl command and parse its JSON output.
+
+        Returns the parsed value; falls back to the raw stdout string if the
+        command failed (with check=False) or the output is not valid JSON.
+        """
+        cmd = self._build_base_cmd(args)
+        result = self.shell.run(cmd, check=check)
+        if result.ok():
             try:
                 return json.loads(result.stdout)
             except json.JSONDecodeError:
                 logger.warning("Failed to parse kubectl output as JSON")
-                return result.stdout
-
         return result.stdout
 
     # ==================== RESOURCE MANAGEMENT ====================
@@ -126,7 +128,7 @@ class KubectlRunner:
         namespace: Optional[str] = None,
         output: str = "json",
         all_namespaces: bool = False,
-    ) -> Union[dict, list]:
+    ) -> Any:
         """
         Get resource(s).
 
@@ -151,7 +153,9 @@ class KubectlRunner:
             args.extend(["-o", output])
 
         logger.debug(f"Getting {resource_type}" + (f"/{name}" if name else ""))
-        return self.run_command(args, parse_json=(output == "json"))
+        if output == "json":
+            return self.run_command_json(args)
+        return self.run_command(args)
 
     def describe(
         self, resource_type: str, name: str, namespace: Optional[str] = None
@@ -190,7 +194,7 @@ class KubectlRunner:
         if field_selector:
             args.extend(["--field-selector", field_selector])
 
-        result = self.run_command(args, parse_json=True)
+        result = self.run_command_json(args)
         return result.get("items", []) if isinstance(result, dict) else []
 
     def logs(
@@ -352,7 +356,7 @@ class KubectlRunner:
 
     def list_namespaces(self) -> list[dict[str, Any]]:
         """List all namespaces."""
-        result = self.run_command(["get", "namespaces", "-o", "json"], parse_json=True)
+        result = self.run_command_json(["get", "namespaces", "-o", "json"])
         return result.get("items", []) if isinstance(result, dict) else []
 
     # ==================== CONTEXT MANAGEMENT ====================
@@ -376,7 +380,7 @@ class KubectlRunner:
 
     def version(self) -> dict[str, Any]:
         """Get kubectl and server version."""
-        return self.run_command(["version", "-o", "json"], parse_json=True)
+        return self.run_command_json(["version", "-o", "json"])
 
     def cluster_info(self) -> str:
         """Get cluster information."""

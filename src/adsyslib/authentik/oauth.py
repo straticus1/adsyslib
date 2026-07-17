@@ -61,7 +61,7 @@ class AuthentikOAuthManager:
         """
         self.container_name = container_name
 
-    def _docker_exec_python(self, script: str) -> dict[str, Any]:
+    def _docker_exec_python(self, script: str) -> Any:
         """
         Execute Python code in Authentik container.
 

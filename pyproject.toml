@@ -47,6 +47,7 @@ dev = [
     "mypy",
     "types-PyYAML",
     "types-paramiko",
+    "types-requests",
 ]
 
 [tool.setuptools.packages.find]
@@ -68,18 +69,7 @@ warn_unused_ignores = true
 # Lenient baseline; per-module strictness ratchets up during the unification phase
 # (see docs/plans/2026-07-16-adsyslib-overhaul-design.md).
 
-# RATCHET LIST: pre-existing type errors grandfathered at gate introduction (2026-07-16).
-# Remove modules from this list as they are unified in Phase 2 — never add to it.
-[[tool.mypy.overrides]]
-module = [
-    "adsyslib.authentik.client",
-    "adsyslib.authentik.oauth",
-    "adsyslib.cli.commands.authentik_cmd",
-    "adsyslib.k8s.kubectl",
-    "adsyslib.keycloak.client",
-    "adsyslib.keycloak.migrate",
-]
-ignore_errors = true
+# Ratchet list emptied 2026-07-16 — every module type-checks. Do not re-add.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
