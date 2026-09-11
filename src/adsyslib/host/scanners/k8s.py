@@ -5,6 +5,7 @@ Covers node health, failing pods, deployment status, resource pressure,
 and persistent volume claims. Does not exec into pods — use KubeShell
 for in-pod service scanning.
 """
+
 import json
 import logging
 from dataclasses import dataclass, field
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class NodeStatus:
@@ -110,14 +112,13 @@ class ClusterReport:
                 "total": len(self.deployments),
                 "degraded": [
                     f"{d.namespace}/{d.name} ({d.ready}/{d.desired})"
-                    for d in self.deployments if d.ready < d.desired
+                    for d in self.deployments
+                    if d.ready < d.desired
                 ],
             },
             "pvcs": {
                 "total": len(self.pvcs),
-                "not_bound": [
-                    f"{p.namespace}/{p.name}" for p in self.pvcs if p.phase != "Bound"
-                ],
+                "not_bound": [f"{p.namespace}/{p.name}" for p in self.pvcs if p.phase != "Bound"],
             },
         }
 
@@ -142,7 +143,9 @@ class ClusterReport:
                 print(f"      - {issue}")
 
         degraded = [d for d in self.deployments if d.ready < d.desired]
-        print(f"  Deployments:  {len(self.deployments) - len(degraded)}/{len(self.deployments)} healthy")
+        print(
+            f"  Deployments:  {len(self.deployments) - len(degraded)}/{len(self.deployments)} healthy"
+        )
         for d in degraded:
             print(f"    ! {d.namespace}/{d.name}: {d.ready}/{d.desired} ready")
 
@@ -155,12 +158,15 @@ class ClusterReport:
         if self.events:
             print(f"  Warning events: {len(self.events)}")
             for e in self.events[:5]:
-                print(f"    ! [{e.get('namespace', '')}] {e.get('reason', '')}: {e.get('message', '')[:80]}")
+                print(
+                    f"    ! [{e.get('namespace', '')}] {e.get('reason', '')}: {e.get('message', '')[:80]}"
+                )
 
 
 # ---------------------------------------------------------------------------
 # Scanner
 # ---------------------------------------------------------------------------
+
 
 class KubernetesClusterScanner:
     """
@@ -225,22 +231,16 @@ class KubernetesClusterScanner:
             name = meta.get("name", "")
             labels = meta.get("labels", {})
             roles = [
-                k.split("/")[-1]
-                for k in labels
-                if k.startswith("node-role.kubernetes.io/")
+                k.split("/")[-1] for k in labels if k.startswith("node-role.kubernetes.io/")
             ] or ["worker"]
 
             version = status.get("nodeInfo", {}).get("kubeletVersion", "")
 
             conditions = status.get("conditions", [])
-            ready = any(
-                c["type"] == "Ready" and c["status"] == "True"
-                for c in conditions
-            )
+            ready = any(c["type"] == "Ready" and c["status"] == "True" for c in conditions)
 
             taints = [
-                f"{t['key']}={t.get('value', '')}:{t['effect']}"
-                for t in spec.get("taints", [])
+                f"{t['key']}={t.get('value', '')}:{t['effect']}" for t in spec.get("taints", [])
             ]
 
             issues = []
@@ -248,13 +248,21 @@ class KubernetesClusterScanner:
                 if cond["type"] != "Ready" and cond["status"] == "True":
                     issues.append(f"{cond['type']}: {cond.get('message', '')[:100]}")
             if not ready:
-                issues.append(f"Node not Ready: {next((c.get('message','') for c in conditions if c['type']=='Ready'), '')[:100]}")
+                issues.append(
+                    f"Node not Ready: {next((c.get('message', '') for c in conditions if c['type'] == 'Ready'), '')[:100]}"
+                )
 
-            nodes.append(NodeStatus(
-                name=name, ready=ready, roles=roles,
-                version=version, conditions=conditions,
-                taints=taints, issues=issues,
-            ))
+            nodes.append(
+                NodeStatus(
+                    name=name,
+                    ready=ready,
+                    roles=roles,
+                    version=version,
+                    conditions=conditions,
+                    taints=taints,
+                    issues=issues,
+                )
+            )
         return nodes
 
     def _scan_pods(self) -> list[PodStatus]:
@@ -307,11 +315,17 @@ class KubernetesClusterScanner:
                 issues.append(f"Phase={phase}: {msg[:100]}")
 
             if issues or phase in ("Failed", "Unknown") or restarts >= 5:
-                failing.append(PodStatus(
-                    name=name, namespace=namespace, phase=phase,
-                    ready=(ready_containers == total_containers),
-                    restarts=restarts, node=node, issues=issues,
-                ))
+                failing.append(
+                    PodStatus(
+                        name=name,
+                        namespace=namespace,
+                        phase=phase,
+                        ready=(ready_containers == total_containers),
+                        restarts=restarts,
+                        node=node,
+                        issues=issues,
+                    )
+                )
 
         return failing
 
@@ -342,11 +356,16 @@ class KubernetesClusterScanner:
             if available < desired:
                 issues.append(f"Only {available}/{desired} replicas available")
 
-            deployments.append(DeploymentStatus(
-                name=name, namespace=namespace,
-                desired=desired, ready=ready, available=available,
-                issues=issues,
-            ))
+            deployments.append(
+                DeploymentStatus(
+                    name=name,
+                    namespace=namespace,
+                    desired=desired,
+                    ready=ready,
+                    available=available,
+                    issues=issues,
+                )
+            )
 
         return deployments
 
@@ -375,11 +394,16 @@ class KubernetesClusterScanner:
             if phase != "Bound":
                 issues.append(f"PVC not Bound (phase={phase})")
 
-            pvcs.append(PVCStatus(
-                name=name, namespace=namespace, phase=phase,
-                capacity=capacity, storage_class=storage_class,
-                issues=issues,
-            ))
+            pvcs.append(
+                PVCStatus(
+                    name=name,
+                    namespace=namespace,
+                    phase=phase,
+                    capacity=capacity,
+                    storage_class=storage_class,
+                    issues=issues,
+                )
+            )
 
         return pvcs
 
@@ -389,26 +413,32 @@ class KubernetesClusterScanner:
         if self.context:
             cmd += ["--context", self.context]
         cmd += [
-            "get", "events", "--all-namespaces",
-            "--field-selector", "type=Warning",
+            "get",
+            "events",
+            "--all-namespaces",
+            "--field-selector",
+            "type=Warning",
             "--sort-by=.lastTimestamp",
         ]
         from adsyslib.core import run as _run
+
         r = _run(cmd)
         if not r.ok() or not r.stdout.strip():
             return []
 
         events = []
         lines = r.stdout.strip().splitlines()
-        for line in lines[1:limit + 1]:  # skip header
+        for line in lines[1 : limit + 1]:  # skip header
             parts = line.split(None, 5)
             if len(parts) >= 6:
-                events.append({
-                    "namespace": parts[0],
-                    "last_seen": parts[1],
-                    "type": parts[2],
-                    "reason": parts[3],
-                    "object": parts[4],
-                    "message": parts[5] if len(parts) > 5 else "",
-                })
+                events.append(
+                    {
+                        "namespace": parts[0],
+                        "last_seen": parts[1],
+                        "type": parts[2],
+                        "reason": parts[3],
+                        "object": parts[4],
+                        "message": parts[5] if len(parts) > 5 else "",
+                    }
+                )
         return events

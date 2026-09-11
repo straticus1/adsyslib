@@ -2,6 +2,7 @@
 Tests for DockerShell, KubeShell, KubernetesClusterScanner, and FleetReport.
 Uses FakeProcess to intercept local subprocess calls without real Docker/kubectl.
 """
+
 import json
 from unittest.mock import MagicMock, patch
 
@@ -21,6 +22,7 @@ from adsyslib.host.session import HostReport, HostSession
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _result(stdout="", exit_code=0):
     return CommandResult(stdout=stdout, stderr="", exit_code=exit_code, command="", duration=0.0)
 
@@ -30,6 +32,7 @@ def _patch_run(responses: dict[str, str]):
     Returns a mock for adsyslib.core.run that maps command strings to stdout.
     Unrecognised commands return exit_code=1.
     """
+
     def fake_run(cmd, check=False, **_):
         if isinstance(cmd, list):
             key = " ".join(str(c) for c in cmd)
@@ -40,6 +43,7 @@ def _patch_run(responses: dict[str, str]):
             if key == pattern or key.startswith(pattern):
                 return _result(stdout=stdout)
         return _result(exit_code=1)
+
     return fake_run
 
 
@@ -47,17 +51,17 @@ def _patch_run(responses: dict[str, str]):
 # DockerShell
 # ---------------------------------------------------------------------------
 
+
 class TestDockerShell:
     def _shell(self, cmds=None):
         shell = DockerShell("my-container")
         shell.run = lambda cmd, **_: _result(
             stdout={
-                " ".join(cmd) if isinstance(cmd, list) else cmd: v
-                for k, v in (cmds or {}).items()
+                " ".join(cmd) if isinstance(cmd, list) else cmd: v for k, v in (cmds or {}).items()
             }.get(" ".join(cmd) if isinstance(cmd, list) else cmd, ""),
-            exit_code=0 if (cmds or {}).get(
-                " ".join(cmd) if isinstance(cmd, list) else cmd
-            ) is not None else 1,
+            exit_code=0
+            if (cmds or {}).get(" ".join(cmd) if isinstance(cmd, list) else cmd) is not None
+            else 1,
         )
         return shell
 
@@ -68,7 +72,7 @@ class TestDockerShell:
     def test_read_text_uses_cat(self):
         def fake_run(cmd, **_):
             key = " ".join(cmd) if isinstance(cmd, list) else cmd
-            if "cat /etc/passwd" in key:
+            if "cat -- /etc/passwd" in key:
                 return _result(stdout="root:x:0:0:root:/root:/bin/bash")
             return _result(exit_code=1)
 
@@ -134,6 +138,7 @@ class TestDockerShell:
 # KubeShell
 # ---------------------------------------------------------------------------
 
+
 class TestKubeShell:
     def test_label(self):
         shell = KubeShell("my-pod", namespace="prod")
@@ -190,6 +195,7 @@ class TestKubeShell:
 # KubernetesClusterScanner
 # ---------------------------------------------------------------------------
 
+
 def _node_item(name, ready=True, version="v1.28.0", roles=None):
     condition_status = "True" if ready else "False"
     roles = roles or ["worker"]
@@ -213,12 +219,14 @@ def _pod_item(name, namespace="default", phase="Running", restarts=0, node="node
         "spec": {"nodeName": node},
         "status": {
             "phase": phase,
-            "containerStatuses": [{
-                "name": "app",
-                "ready": not crash and phase == "Running",
-                "restartCount": restarts,
-                "state": {"waiting": waiting} if crash else {"running": {}},
-            }],
+            "containerStatuses": [
+                {
+                    "name": "app",
+                    "ready": not crash and phase == "Running",
+                    "restartCount": restarts,
+                    "state": {"waiting": waiting} if crash else {"running": {}},
+                }
+            ],
         },
     }
 
@@ -247,133 +255,171 @@ class TestKubernetesClusterScanner:
         return scanner
 
     def test_nodes_all_ready(self):
-        scanner = self._scanner({
-            "get nodes": {"items": [_node_item("node-1"), _node_item("node-2")]},
-            "get pods --all-namespaces": {"items": []},
-            "get deployments --all-namespaces": {"items": []},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": [_node_item("node-1"), _node_item("node-2")]},
+                "get pods --all-namespaces": {"items": []},
+                "get deployments --all-namespaces": {"items": []},
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         assert len(report.nodes) == 2
         assert all(n.ready for n in report.nodes)
         assert report.nodes[0].name == "node-1"
 
     def test_not_ready_node_has_issue(self):
-        scanner = self._scanner({
-            "get nodes": {"items": [_node_item("bad-node", ready=False)]},
-            "get pods --all-namespaces": {"items": []},
-            "get deployments --all-namespaces": {"items": []},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": [_node_item("bad-node", ready=False)]},
+                "get pods --all-namespaces": {"items": []},
+                "get deployments --all-namespaces": {"items": []},
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         assert not report.nodes[0].ready
         assert report.nodes[0].issues
 
     def test_crashloop_pod_detected(self):
-        scanner = self._scanner({
-            "get nodes": {"items": []},
-            "get pods --all-namespaces": {"items": [
-                _pod_item("crasher", crash=True),
-            ]},
-            "get deployments --all-namespaces": {"items": []},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": []},
+                "get pods --all-namespaces": {
+                    "items": [
+                        _pod_item("crasher", crash=True),
+                    ]
+                },
+                "get deployments --all-namespaces": {"items": []},
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         assert len(report.failing_pods) == 1
         assert any("CrashLoopBackOff" in i for i in report.failing_pods[0].issues)
 
     def test_high_restart_pod_detected(self):
-        scanner = self._scanner({
-            "get nodes": {"items": []},
-            "get pods --all-namespaces": {"items": [
-                _pod_item("restarter", restarts=10),
-            ]},
-            "get deployments --all-namespaces": {"items": []},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": []},
+                "get pods --all-namespaces": {
+                    "items": [
+                        _pod_item("restarter", restarts=10),
+                    ]
+                },
+                "get deployments --all-namespaces": {"items": []},
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         assert len(report.failing_pods) == 1
         assert any("restart" in i for i in report.failing_pods[0].issues)
 
     def test_healthy_pod_not_in_failing(self):
-        scanner = self._scanner({
-            "get nodes": {"items": []},
-            "get pods --all-namespaces": {"items": [
-                _pod_item("healthy", restarts=0),
-            ]},
-            "get deployments --all-namespaces": {"items": []},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": []},
+                "get pods --all-namespaces": {
+                    "items": [
+                        _pod_item("healthy", restarts=0),
+                    ]
+                },
+                "get deployments --all-namespaces": {"items": []},
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         assert report.failing_pods == []
 
     def test_degraded_deployment_has_issue(self):
-        scanner = self._scanner({
-            "get nodes": {"items": []},
-            "get pods --all-namespaces": {"items": []},
-            "get deployments --all-namespaces": {"items": [
-                _deployment_item("api", desired=3, ready=1),
-            ]},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": []},
+                "get pods --all-namespaces": {"items": []},
+                "get deployments --all-namespaces": {
+                    "items": [
+                        _deployment_item("api", desired=3, ready=1),
+                    ]
+                },
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         assert report.deployments[0].issues
 
     def test_healthy_deployment_no_issue(self):
-        scanner = self._scanner({
-            "get nodes": {"items": []},
-            "get pods --all-namespaces": {"items": []},
-            "get deployments --all-namespaces": {"items": [
-                _deployment_item("api", desired=3, ready=3),
-            ]},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": []},
+                "get pods --all-namespaces": {"items": []},
+                "get deployments --all-namespaces": {
+                    "items": [
+                        _deployment_item("api", desired=3, ready=3),
+                    ]
+                },
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         assert report.deployments[0].issues == []
 
     def test_unbound_pvc_has_issue(self):
-        scanner = self._scanner({
-            "get nodes": {"items": []},
-            "get pods --all-namespaces": {"items": []},
-            "get deployments --all-namespaces": {"items": []},
-            "get pvc --all-namespaces": {"items": [
-                _pvc_item("data-vol", phase="Pending"),
-            ]},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": []},
+                "get pods --all-namespaces": {"items": []},
+                "get deployments --all-namespaces": {"items": []},
+                "get pvc --all-namespaces": {
+                    "items": [
+                        _pvc_item("data-vol", phase="Pending"),
+                    ]
+                },
+            }
+        )
         report = scanner.scan()
         assert report.pvcs[0].issues
 
     def test_cluster_ok_when_all_healthy(self):
-        scanner = self._scanner({
-            "get nodes": {"items": [_node_item("node-1")]},
-            "get pods --all-namespaces": {"items": []},
-            "get deployments --all-namespaces": {"items": [
-                _deployment_item("api", desired=2, ready=2),
-            ]},
-            "get pvc --all-namespaces": {"items": [
-                _pvc_item("vol-1", phase="Bound"),
-            ]},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": [_node_item("node-1")]},
+                "get pods --all-namespaces": {"items": []},
+                "get deployments --all-namespaces": {
+                    "items": [
+                        _deployment_item("api", desired=2, ready=2),
+                    ]
+                },
+                "get pvc --all-namespaces": {
+                    "items": [
+                        _pvc_item("vol-1", phase="Bound"),
+                    ]
+                },
+            }
+        )
         report = scanner.scan()
         assert report.ok() is True
 
     def test_cluster_not_ok_when_node_not_ready(self):
-        scanner = self._scanner({
-            "get nodes": {"items": [_node_item("bad-node", ready=False)]},
-            "get pods --all-namespaces": {"items": []},
-            "get deployments --all-namespaces": {"items": []},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": [_node_item("bad-node", ready=False)]},
+                "get pods --all-namespaces": {"items": []},
+                "get deployments --all-namespaces": {"items": []},
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         assert report.ok() is False
 
     def test_summary_structure(self):
-        scanner = self._scanner({
-            "get nodes": {"items": [_node_item("node-1")]},
-            "get pods --all-namespaces": {"items": []},
-            "get deployments --all-namespaces": {"items": []},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": [_node_item("node-1")]},
+                "get pods --all-namespaces": {"items": []},
+                "get deployments --all-namespaces": {"items": []},
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         s = report.summary()
         assert "nodes" in s
@@ -383,12 +429,14 @@ class TestKubernetesClusterScanner:
 
     def test_node_roles_parsed(self):
         item = _node_item("control-plane-1", roles=["control-plane", "master"])
-        scanner = self._scanner({
-            "get nodes": {"items": [item]},
-            "get pods --all-namespaces": {"items": []},
-            "get deployments --all-namespaces": {"items": []},
-            "get pvc --all-namespaces": {"items": []},
-        })
+        scanner = self._scanner(
+            {
+                "get nodes": {"items": [item]},
+                "get pods --all-namespaces": {"items": []},
+                "get deployments --all-namespaces": {"items": []},
+                "get pvc --all-namespaces": {"items": []},
+            }
+        )
         report = scanner.scan()
         assert "control-plane" in report.nodes[0].roles
 
@@ -396,6 +444,7 @@ class TestKubernetesClusterScanner:
 # ---------------------------------------------------------------------------
 # FleetReport / scan_fleet
 # ---------------------------------------------------------------------------
+
 
 def _make_host_report(host, ok=True):
     issues = [] if ok else ["something is wrong"]
@@ -407,17 +456,21 @@ def _make_host_report(host, ok=True):
 
 class TestFleetReport:
     def test_ok_when_all_hosts_ok(self):
-        report = FleetReport(host_reports={
-            "web-01": _make_host_report("web-01", ok=True),
-            "web-02": _make_host_report("web-02", ok=True),
-        })
+        report = FleetReport(
+            host_reports={
+                "web-01": _make_host_report("web-01", ok=True),
+                "web-02": _make_host_report("web-02", ok=True),
+            }
+        )
         assert report.ok() is True
 
     def test_not_ok_when_any_host_has_issues(self):
-        report = FleetReport(host_reports={
-            "web-01": _make_host_report("web-01", ok=True),
-            "web-02": _make_host_report("web-02", ok=False),
-        })
+        report = FleetReport(
+            host_reports={
+                "web-01": _make_host_report("web-01", ok=True),
+                "web-02": _make_host_report("web-02", ok=False),
+            }
+        )
         assert report.ok() is False
 
     def test_not_ok_when_connection_error(self):
@@ -428,10 +481,12 @@ class TestFleetReport:
         assert report.ok() is False
 
     def test_hosts_with_issues(self):
-        report = FleetReport(host_reports={
-            "web-01": _make_host_report("web-01", ok=True),
-            "web-02": _make_host_report("web-02", ok=False),
-        })
+        report = FleetReport(
+            host_reports={
+                "web-01": _make_host_report("web-01", ok=True),
+                "web-02": _make_host_report("web-02", ok=False),
+            }
+        )
         assert report.hosts_with_issues() == ["web-02"]
 
     def test_all_issues_includes_errors(self):
@@ -444,9 +499,11 @@ class TestFleetReport:
         assert "_connection_errors" in issues
 
     def test_summary_keys(self):
-        report = FleetReport(host_reports={
-            "web-01": _make_host_report("web-01"),
-        })
+        report = FleetReport(
+            host_reports={
+                "web-01": _make_host_report("web-01"),
+            }
+        )
         s = report.summary()
         assert "total_hosts" in s
         assert "scanned" in s
@@ -506,21 +563,25 @@ class TestScanFleet:
 # Factory functions
 # ---------------------------------------------------------------------------
 
+
 class TestFactories:
     def test_docker_container_factory(self):
         from adsyslib.host import docker_container
+
         session = docker_container("my-container")
         assert isinstance(session, HostSession)
         assert session.host == "docker:my-container"
 
     def test_kube_pod_factory(self):
         from adsyslib.host import kube_pod
+
         session = kube_pod("my-pod", namespace="prod")
         assert isinstance(session, HostSession)
         assert session.host == "k8s:prod/my-pod"
 
     def test_ssh_to_host_factory(self):
         from adsyslib.host import ssh_to_host
+
         session = ssh_to_host("10.0.0.1", user="admin")
         assert isinstance(session, HostSession)
         assert session.host == "10.0.0.1"

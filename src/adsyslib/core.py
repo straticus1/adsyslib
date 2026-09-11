@@ -1,6 +1,7 @@
 import logging
 import os
 import shlex
+import signal
 import subprocess
 import time
 from dataclasses import dataclass
@@ -8,9 +9,11 @@ from typing import Any, Optional, Union
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class CommandResult:
     """Result of a command execution."""
+
     stdout: str
     stderr: str
     exit_code: int
@@ -25,15 +28,27 @@ class CommandResult:
     def ok(self) -> bool:
         return self.exit_code == 0
 
+
 class AdsysError(Exception):
     """Base class for all adsyslib errors."""
 
 
 class ShellError(AdsysError):
     """Raised when a command fails and check=True."""
+
     def __init__(self, result: CommandResult):
         self.result = result
-        super().__init__(f"Command '{result.command}' failed with exit code {result.exit_code}.\nStderr: {result.stderr}")
+        stderr = "[redacted]" if result.command == "[redacted]" else result.stderr
+        super().__init__(
+            f"Command '{result.command}' failed with exit code {result.exit_code}.\nStderr: {stderr}"
+        )
+
+
+class ShellTimeoutError(AdsysError, subprocess.TimeoutExpired):
+    """Execution exceeded its deadline (also a subprocess.TimeoutExpired)."""
+
+    def __init__(self, command: str, timeout: float, output: Any = None, stderr: Any = None):
+        subprocess.TimeoutExpired.__init__(self, command, timeout, output=output, stderr=stderr)
 
 
 class ShellConnectionError(AdsysError, RuntimeError):
@@ -42,6 +57,7 @@ class ShellConnectionError(AdsysError, RuntimeError):
 
 class CollectionError(AdsysError):
     """Raised when compliance evidence collection fails irrecoverably."""
+
 
 def run(
     cmd: Union[str, list[str]],
@@ -53,7 +69,9 @@ def run(
     log_output: bool = True,
     input: Optional[str] = None,
     capture_output: bool = True,
-    text: bool = True
+    text: bool = True,
+    strip_output: bool = True,
+    sensitive: bool = False,
 ) -> CommandResult:
     """
     Run a shell command safely with logging and better typing.
@@ -68,12 +86,20 @@ def run(
         log_output: If True, log the stdout/stderr to debug log.
         input: Optional input to pipe to the command's stdin.
         capture_output: Capture stdout/stderr (default True).
-        text: Text mode for input/output (default True).
+        text: Must be True; results are decoded as UTF-8 with replacement.
+        strip_output: Strip surrounding whitespace (default True for compatibility).
+        sensitive: Hide command metadata and suppress captured-output logging.
     """
+    if timeout is not None and timeout <= 0:
+        raise ValueError("timeout must be positive")
+    if not cmd:
+        raise ValueError("command must not be empty")
+    if not text:
+        raise ValueError("CommandResult is text-only; text=False is unsupported")
     args: Union[str, list[str]]
     if isinstance(cmd, list):
         cmd_str = " ".join(shlex.quote(s) for s in cmd)
-        args = cmd
+        args = cmd_str if shell else cmd
     else:
         cmd_str = cmd
         if not shell:
@@ -81,8 +107,13 @@ def run(
         else:
             args = cmd
 
-    logger.debug(f"Running command: {cmd_str}")
-    start_time = time.time()
+    if not args:
+        raise ValueError("command must contain an executable")
+    if sensitive:
+        cmd_str = "[redacted]"
+        log_output = False
+    logger.debug("Running command: %s", cmd_str)
+    start_time = time.monotonic()
 
     # Merge environment if needed
     run_env = os.environ.copy()
@@ -90,20 +121,38 @@ def run(
         run_env.update(env)
 
     try:
-        proc = subprocess.run(
+        with subprocess.Popen(
             args,
             cwd=cwd,
             env=run_env,
-            capture_output=capture_output,
-            text=text,
+            stdout=subprocess.PIPE if capture_output else None,
+            stderr=subprocess.PIPE if capture_output else None,
+            stdin=subprocess.PIPE if input is not None else None,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
             shell=shell,
-            timeout=timeout,
-            input=input
-        )
-        duration = time.time() - start_time
-        
-        stdout = proc.stdout.strip() if proc.stdout else ""
-        stderr = proc.stderr.strip() if proc.stderr else ""
+            start_new_session=os.name == "posix",
+        ) as proc:
+            try:
+                stdout, stderr = proc.communicate(input, timeout=timeout)
+            except BaseException:
+                # Descendants may retain stdout/stderr and otherwise defeat the deadline.
+                if os.name == "posix":
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                else:
+                    proc.kill()
+                proc.communicate()
+                raise
+        duration = time.monotonic() - start_time
+
+        stdout = stdout or ""
+        stderr = stderr or ""
+        if strip_output:
+            stdout, stderr = stdout.strip(), stderr.strip()
 
         if log_output and stdout:
             logger.debug(f"STDOUT: {stdout}")
@@ -115,7 +164,7 @@ def run(
             stderr=stderr,
             exit_code=proc.returncode,
             command=cmd_str,
-            duration=duration
+            duration=duration,
         )
 
         if check and proc.returncode != 0:
@@ -123,33 +172,47 @@ def run(
 
         return result
 
-    except subprocess.TimeoutExpired:
-        duration = time.time() - start_time
+    except subprocess.TimeoutExpired as exc:
+        duration = time.monotonic() - start_time
         logger.error(f"Command timed out after {duration:.2f}s: {cmd_str}")
-        raise
+        raise ShellTimeoutError(cmd_str, timeout or 0, exc.output, exc.stderr) from None
     except FileNotFoundError as e:
-        duration = time.time() - start_time
+        duration = time.monotonic() - start_time
         logger.debug(f"Command not found: {cmd_str}")
         result = CommandResult(
-            stdout="", stderr=f"command not found: {cmd_str}",
-            exit_code=127, command=cmd_str, duration=duration,
+            stdout="",
+            stderr=f"command not found: {cmd_str}",
+            exit_code=127,
+            command=cmd_str,
+            duration=duration,
         )
         if check:
             raise ShellError(result) from e
         return result
 
+
 class Shell:
     """
-    Stateful internal shell representation. 
+    Stateful internal shell representation.
     Keeps track of CWD and simulates a session.
     """
+
     def __init__(self, cwd: Optional[str] = None, env: Optional[dict[str, str]] = None):
         self.cwd = cwd or os.getcwd()
-        self.env = env or os.environ.copy()
+        self.env = dict(env) if env is not None else os.environ.copy()
 
-    def run(self, cmd: Union[str, list[str]], check: bool = False, timeout: Optional[float] = None, shell: bool = False, **kwargs: Any) -> CommandResult:
+    def run(
+        self,
+        cmd: Union[str, list[str]],
+        check: bool = False,
+        timeout: Optional[float] = None,
+        shell: bool = False,
+        **kwargs: Any,
+    ) -> CommandResult:
         """Run a command within the context of this shell (cwd/env)."""
-        return run(cmd, cwd=self.cwd, env=self.env, check=check, timeout=timeout, shell=shell, **kwargs)
+        return run(
+            cmd, cwd=self.cwd, env=self.env, check=check, timeout=timeout, shell=shell, **kwargs
+        )
 
     def cd(self, path: str) -> None:
         """Change current working directory of the shell wrapper."""
@@ -222,4 +285,3 @@ class Shell:
             }
         except OSError:
             return None
-

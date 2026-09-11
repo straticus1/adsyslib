@@ -4,17 +4,31 @@ import typer
 
 app = typer.Typer(help="Scan hosts, containers, and Kubernetes pods/clusters.")
 
-VALID_SERVICES = ["apache", "dns", "dovecot", "mysql", "nginx", "postgresql", "postfix", "redis", "spamassassin"]
+VALID_SERVICES = [
+    "apache",
+    "dns",
+    "dovecot",
+    "mysql",
+    "nginx",
+    "postgresql",
+    "postfix",
+    "redis",
+    "spamassassin",
+]
 
 
 @app.command("scan")
 def scan(
     # Target selection — mutually exclusive
     host: Optional[str] = typer.Argument(None, help="SSH hostname or IP"),
-    container: Optional[str] = typer.Option(None, "--container", "-c", help="Docker container name/ID"),
+    container: Optional[str] = typer.Option(
+        None, "--container", "-c", help="Docker container name/ID"
+    ),
     pod: Optional[str] = typer.Option(None, "--pod", "-p", help="Kubernetes pod name"),
     namespace: str = typer.Option("default", "--namespace", "-n", help="Kubernetes namespace"),
-    kube_container: Optional[str] = typer.Option(None, "--kube-container", help="Container in pod (multi-container pods)"),
+    kube_container: Optional[str] = typer.Option(
+        None, "--kube-container", help="Container in pod (multi-container pods)"
+    ),
     kube_context: Optional[str] = typer.Option(None, "--kube-context", help="kubectl context"),
     # SSH options
     user: str = typer.Option("root", "--user", "-u", help="SSH username"),
@@ -23,7 +37,9 @@ def scan(
     password: Optional[str] = typer.Option(None, "--password", help="SSH password"),
     # Scanner options
     services: list[str] = typer.Option(
-        [], "--service", "-s",
+        [],
+        "--service",
+        "-s",
         help="Service(s) to scan. Omit for all.",
     ),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Save JSON report to file"),
@@ -96,7 +112,9 @@ def scan(
 @app.command("cluster")
 def cluster(
     context: Optional[str] = typer.Option(None, "--context", help="kubectl context"),
-    namespaces: list[str] = typer.Option([], "--namespace", "-n", help="Namespace(s) to scan. Omit for all."),
+    namespaces: list[str] = typer.Option(
+        [], "--namespace", "-n", help="Namespace(s) to scan. Omit for all."
+    ),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Save JSON report to file"),
     fmt: str = typer.Option("text", "--format", "-f", help="Output format: text or json"),
 ) -> None:
@@ -146,11 +164,19 @@ def fleet(
     hosts: list[str] = typer.Argument(None, help="SSH hostnames or IPs"),
     user: str = typer.Option("root", "--user", "-u", help="SSH username"),
     key_file: Optional[str] = typer.Option(None, "--key-file", "-i", help="SSH private key"),
-    containers: list[str] = typer.Option([], "--container", "-c", help="Docker container name/ID (repeatable)"),
+    containers: list[str] = typer.Option(
+        [], "--container", "-c", help="Docker container name/ID (repeatable)"
+    ),
     pods: list[str] = typer.Option([], "--pod", "-p", help="Kubernetes pod name (repeatable)"),
-    pod_namespace: str = typer.Option("default", "--pod-namespace", help="Namespace for --pod targets"),
-    kube_context: Optional[str] = typer.Option(None, "--kube-context", help="kubectl context for pod targets"),
-    services: list[str] = typer.Option([], "--service", "-s", help="Services to scan. Omit for all."),
+    pod_namespace: str = typer.Option(
+        "default", "--pod-namespace", help="Namespace for --pod targets"
+    ),
+    kube_context: Optional[str] = typer.Option(
+        None, "--kube-context", help="kubectl context for pod targets"
+    ),
+    services: list[str] = typer.Option(
+        [], "--service", "-s", help="Services to scan. Omit for all."
+    ),
     workers: int = typer.Option(10, "--workers", "-w", help="Parallel connections"),
     output: Optional[str] = typer.Option(None, "--output", "-o"),
     fmt: str = typer.Option("text", "--format", "-f", help="text or json"),
@@ -172,7 +198,7 @@ def fleet(
     from adsyslib.host import docker_container, kube_pod, scan_fleet, ssh_to_host
 
     sessions = []
-    for h in (hosts or []):
+    for h in hosts or []:
         sessions.append(ssh_to_host(h, user=user, key_file=key_file))
     for c in containers:
         sessions.append(docker_container(c))

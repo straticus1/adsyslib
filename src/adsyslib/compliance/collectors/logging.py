@@ -2,6 +2,7 @@
 Logging collector — audit logging configuration evidence.
 Maps to controls: AU-2, AU-9.
 """
+
 import logging
 from typing import Any, Optional
 
@@ -37,9 +38,7 @@ def _log_forwarding(ctx: ShellProtocol) -> dict[str, Any]:
         paths_to_check.append("/etc/rsyslog.conf")
     if ctx.is_dir("/etc/rsyslog.d"):
         paths_to_check += [
-            f"/etc/rsyslog.d/{f}"
-            for f in ctx.list_dir("/etc/rsyslog.d")
-            if f.endswith(".conf")
+            f"/etc/rsyslog.d/{f}" for f in ctx.list_dir("/etc/rsyslog.d") if f.endswith(".conf")
         ]
 
     for path in paths_to_check:

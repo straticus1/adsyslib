@@ -4,6 +4,7 @@ Tests for the host scanning module.
 Uses a FakeShell that simulates RemoteShell responses so no real SSH
 connection is needed.
 """
+
 import json
 from typing import Optional
 
@@ -24,10 +25,13 @@ from adsyslib.host.session import HostReport, HostSession
 # Fake shell
 # ---------------------------------------------------------------------------
 
+
 class FakeShell:
     """Simulates RemoteShell for unit tests."""
 
-    def __init__(self, commands: Optional[dict[str, str]] = None, files: Optional[dict[str, str]] = None):
+    def __init__(
+        self, commands: Optional[dict[str, str]] = None, files: Optional[dict[str, str]] = None
+    ):
         self._commands = commands or {}
         self._files = files or {}
         self.host = "test.host"
@@ -40,7 +44,9 @@ class FakeShell:
             key = str(cmd)
         stdout = self._commands.get(key, "")
         exit_code = 0 if key in self._commands else 1
-        return CommandResult(stdout=stdout, stderr="", exit_code=exit_code, command=key, duration=0.0)
+        return CommandResult(
+            stdout=stdout, stderr="", exit_code=exit_code, command=key, duration=0.0
+        )
 
     def read_text(self, path: str) -> Optional[str]:
         return self._files.get(path)
@@ -66,12 +72,14 @@ MAILQ_FULL = (
 
 
 def _postfix_shell(active=True, conf=POSTFIX_CONF, mailq=MAILQ_EMPTY):
-    return FakeShell(commands={
-        "systemctl is-active postfix": "active" if active else "inactive",
-        "postconf -n": conf,
-        "mailq": mailq,
-        "tail -50 /var/log/mail.log": "May 13 10:00:00 mail postfix/smtpd: connect from foo[1.2.3.4]",
-    })
+    return FakeShell(
+        commands={
+            "systemctl is-active postfix": "active" if active else "inactive",
+            "postconf -n": conf,
+            "mailq": mailq,
+            "tail -50 /var/log/mail.log": "May 13 10:00:00 mail postfix/smtpd: connect from foo[1.2.3.4]",
+        }
+    )
 
 
 class TestPostfixScanner:
@@ -201,12 +209,14 @@ mail_location = maildir:~/Maildir
 
 
 def _dovecot_shell(active=True, conf=DOVECONF):
-    return FakeShell(commands={
-        "systemctl is-active dovecot": "active" if active else "inactive",
-        "dovecot --version": "2.3.19",
-        "doveconf -n": conf,
-        "doveadm who": "username  pid  ip\nryan  12345  10.0.0.1",
-    })
+    return FakeShell(
+        commands={
+            "systemctl is-active dovecot": "active" if active else "inactive",
+            "dovecot --version": "2.3.19",
+            "doveconf -n": conf,
+            "doveadm who": "username  pid  ip\nryan  12345  10.0.0.1",
+        }
+    )
 
 
 class TestDovecotScanner:
@@ -274,13 +284,15 @@ server {
 
 
 def _nginx_shell(active=True, nginx_t=NGINX_T_OUTPUT):
-    return FakeShell(commands={
-        "systemctl is-active nginx": "active" if active else "inactive",
-        "nginx -v": "nginx version: nginx/1.24.0",
-        "nginx -t": nginx_t,
-        "nginx -T": nginx_t,
-        "ls /etc/nginx/sites-enabled": "default\nmail.conf",
-    })
+    return FakeShell(
+        commands={
+            "systemctl is-active nginx": "active" if active else "inactive",
+            "nginx -v": "nginx version: nginx/1.24.0",
+            "nginx -t": nginx_t,
+            "nginx -T": nginx_t,
+            "ls /etc/nginx/sites-enabled": "default\nmail.conf",
+        }
+    )
 
 
 class TestNginxScanner:
@@ -311,7 +323,9 @@ class TestNginxScanner:
         assert r.config["tls"].get("hsts_configured") is True
 
     def test_hsts_missing_flagged(self):
-        nginx_t = NGINX_T_OUTPUT.replace('add_header Strict-Transport-Security "max-age=31536000";', "")
+        nginx_t = NGINX_T_OUTPUT.replace(
+            'add_header Strict-Transport-Security "max-age=31536000";', ""
+        )
         r = NginxScanner(_nginx_shell(nginx_t=nginx_t)).scan()
         assert any("HSTS" in i for i in r.issues)
 
@@ -324,13 +338,19 @@ class TestNginxScanner:
 # HostSession / HostReport
 # ---------------------------------------------------------------------------
 
+
 class FakeRemoteShell:
     """Minimal RemoteShell stand-in for session-level tests."""
+
     host = "test.corp.com"
     user = "root"
 
-    def connect(self): return self
-    def disconnect(self): pass
+    def connect(self):
+        return self
+
+    def disconnect(self):
+        pass
+
     def run(self, cmd, check=False, **_):
         if isinstance(cmd, list):
             key = " ".join(str(c) for c in cmd)
@@ -338,10 +358,10 @@ class FakeRemoteShell:
             key = str(cmd)
         stdout = {
             "systemctl is-active postfix": "active",
-            "systemctl is-active named":   "inactive",
-            "systemctl is-active bind9":   "inactive",
+            "systemctl is-active named": "inactive",
+            "systemctl is-active bind9": "inactive",
             "systemctl is-active dovecot": "active",
-            "systemctl is-active nginx":   "active",
+            "systemctl is-active nginx": "active",
             "postconf -n": "smtpd_tls_security_level = may\nsmtp_tls_security_level = may\n",
             "mailq": "Mail queue is empty",
             "doveconf -n": "ssl = required\ndisable_plaintext_auth = yes\n",
@@ -351,8 +371,12 @@ class FakeRemoteShell:
             "rndc status": "number of zones: 5\n",
             "named-checkconf": "",
         }.get(key, "")
-        return CommandResult(stdout=stdout, stderr="", exit_code=0 if stdout else 1, command=key, duration=0.0)
-    def read_text(self, path): return None
+        return CommandResult(
+            stdout=stdout, stderr="", exit_code=0 if stdout else 1, command=key, duration=0.0
+        )
+
+    def read_text(self, path):
+        return None
 
 
 class TestHostSession:
@@ -436,15 +460,17 @@ SSLProtocol all -SSLv2 SSLv3 TLSv1
 
 
 def _apache_shell(active=True, conf_dump=APACHE_CONFIG_DUMP_STRONG):
-    return FakeShell(commands={
-        "systemctl is-active apache2": "active" if active else "inactive",
-        "systemctl is-active httpd": "inactive",
-        "apache2 -v": APACHE_V_OUTPUT,
-        "apache2 -t": "Syntax OK",
-        "apache2 -M": "ssl_module (shared)\nrewrite_module (shared)\n",
-        "apache2 -S": "namevhost example.com (:443)\n",
-        "apachectl -D DUMP_CONFIG": conf_dump,
-    })
+    return FakeShell(
+        commands={
+            "systemctl is-active apache2": "active" if active else "inactive",
+            "systemctl is-active httpd": "inactive",
+            "apache2 -v": APACHE_V_OUTPUT,
+            "apache2 -t": "Syntax OK",
+            "apache2 -M": "ssl_module (shared)\nrewrite_module (shared)\n",
+            "apache2 -S": "namevhost example.com (:443)\n",
+            "apachectl -D DUMP_CONFIG": conf_dump,
+        }
+    )
 
 
 class TestApacheScanner:
@@ -494,13 +520,15 @@ local-infile = 1
 
 
 def _mysql_shell(active=True, cnf=MYSQL_CNF_SECURE):
-    return FakeShell(commands={
-        "systemctl is-active mysql": "active" if active else "inactive",
-        "systemctl is-active mariadb": "inactive",
-        "systemctl is-active mysqld": "inactive",
-        "mysql --version": "mysql  Ver 8.0.32",
-        "cat /etc/mysql/my.cnf": cnf,
-    })
+    return FakeShell(
+        commands={
+            "systemctl is-active mysql": "active" if active else "inactive",
+            "systemctl is-active mariadb": "inactive",
+            "systemctl is-active mysqld": "inactive",
+            "mysql --version": "mysql  Ver 8.0.32",
+            "cat /etc/mysql/my.cnf": cnf,
+        }
+    )
 
 
 class TestMysqlScanner:
@@ -551,13 +579,15 @@ host    all       all   0.0.0.0/0    trust
 
 
 def _pg_shell(active=True, pg_conf=PG_CONF_SSL_ON, hba=PG_HBA_SECURE):
-    return FakeShell(commands={
-        "systemctl is-active postgresql": "active" if active else "inactive",
-        "systemctl is-active postgres": "inactive",
-        "psql --version": "psql (PostgreSQL) 15.2",
-        "cat /etc/postgresql/postgresql.conf": pg_conf,
-        "cat /etc/postgresql/pg_hba.conf": hba,
-    })
+    return FakeShell(
+        commands={
+            "systemctl is-active postgresql": "active" if active else "inactive",
+            "systemctl is-active postgres": "inactive",
+            "psql --version": "psql (PostgreSQL) 15.2",
+            "cat /etc/postgresql/postgresql.conf": pg_conf,
+            "cat /etc/postgresql/pg_hba.conf": hba,
+        }
+    )
 
 
 class TestPostgresScanner:
@@ -651,6 +681,7 @@ class TestRedisScanner:
 # SpamassassinScanner
 # ---------------------------------------------------------------------------
 
+
 def _spamassassin_shell(active=True, rule_age_fresh=True):
     cmds = {
         "systemctl is-active spamassassin": "active" if active else "inactive",
@@ -663,7 +694,9 @@ def _spamassassin_shell(active=True, rule_age_fresh=True):
         ),
     }
     if rule_age_fresh:
-        cmds["find /var/lib/spamassassin -name *.cf -newer /etc/cron.daily/spamassassin"] = "/var/lib/spamassassin/3.004006/updates_spamassassin_org.cf"
+        cmds["find /var/lib/spamassassin -name *.cf -newer /etc/cron.daily/spamassassin"] = (
+            "/var/lib/spamassassin/3.004006/updates_spamassassin_org.cf"
+        )
     return FakeShell(commands=cmds)
 
 
@@ -690,6 +723,7 @@ class TestSpamassassinScanner:
 # host_controls integration
 # ---------------------------------------------------------------------------
 
+
 class TestHostControls:
     def _report(self, results):
         """Build a HostReport from {svc: [issue_str, ...]}."""
@@ -707,6 +741,7 @@ class TestHostControls:
 
     def test_nginx_tls_issue_maps_to_sc8(self):
         from adsyslib.compliance.builder import host_controls
+
         report = self._report({"nginx": ["weak SSL/TLS protocol in use: SSLv3"]})
         controls = host_controls(report)
         ids = {c.id for c in controls}
@@ -714,6 +749,7 @@ class TestHostControls:
 
     def test_service_not_running_maps_to_si2(self):
         from adsyslib.compliance.builder import host_controls
+
         report = self._report({"nginx": ["nginx is not running"]})
         controls = host_controls(report)
         ids = {c.id for c in controls}
@@ -721,18 +757,23 @@ class TestHostControls:
 
     def test_redis_no_auth_maps_to_ac17(self):
         from adsyslib.compliance.builder import host_controls
-        report = self._report({"redis": ["redis has no requirepass set — unauthenticated access possible"]})
+
+        report = self._report(
+            {"redis": ["redis has no requirepass set — unauthenticated access possible"]}
+        )
         controls = host_controls(report)
         ids = {c.id for c in controls}
         assert "AC-17" in ids
 
     def test_no_issues_no_controls(self):
         from adsyslib.compliance.builder import host_controls
+
         report = self._report({"nginx": []})
         assert host_controls(report) == []
 
     def test_evidence_includes_host_and_service(self):
         from adsyslib.compliance.builder import host_controls
+
         report = self._report({"nginx": ["weak SSL/TLS protocol in use: TLSv1"]})
         controls = host_controls(report)
         sc8 = next(c for c in controls if c.id == "SC-8")
@@ -742,9 +783,17 @@ class TestHostControls:
     def test_merge_overrides_passing_control(self):
         from adsyslib.compliance import AuditPackage, ControlResult
         from adsyslib.compliance.builder import merge_host_findings
+
         pkg = AuditPackage(
             frameworks=["fedramp"],
-            controls=[ControlResult(id="SC-8", title="Transmission Protection", status="pass", framework="nist-800-53")],
+            controls=[
+                ControlResult(
+                    id="SC-8",
+                    title="Transmission Protection",
+                    status="pass",
+                    framework="nist-800-53",
+                )
+            ],
         )
         report = self._report({"nginx": ["weak SSL/TLS protocol in use: SSLv3"]})
         merge_host_findings(pkg, report)
@@ -755,6 +804,7 @@ class TestHostControls:
     def test_merge_appends_new_control(self):
         from adsyslib.compliance import AuditPackage
         from adsyslib.compliance.builder import merge_host_findings
+
         pkg = AuditPackage(frameworks=["fedramp"], controls=[])
         report = self._report({"nginx": ["nginx is not running"]})
         merge_host_findings(pkg, report)

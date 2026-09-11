@@ -2,6 +2,7 @@
 Entitlements collector — access/permission evidence.
 Maps to controls: AC-2, AC-3.
 """
+
 import logging
 from typing import Any, Optional
 
@@ -23,11 +24,13 @@ def _local_groups(ctx: ShellProtocol) -> list[dict[str, Any]]:
     for line in text.splitlines():
         parts = line.split(":")
         if len(parts) == 4:
-            groups.append({
-                "name": parts[0],
-                "gid": parts[2],
-                "members": [m for m in parts[3].split(",") if m],
-            })
+            groups.append(
+                {
+                    "name": parts[0],
+                    "gid": parts[2],
+                    "members": [m for m in parts[3].split(",") if m],
+                }
+            )
     return groups
 
 
@@ -52,7 +55,12 @@ def _ad_entitlements(ctx: ShellProtocol) -> dict[str, Any]:
         domain = None
         for line in r.stdout.splitlines():
             line = line.strip()
-            if not line.startswith("realm-name") and not line.startswith("domain-name") and "." in line and not line.startswith(" "):
+            if (
+                not line.startswith("realm-name")
+                and not line.startswith("domain-name")
+                and "." in line
+                and not line.startswith(" ")
+            ):
                 domain = line.strip()
             if line.startswith("domain-name:"):
                 domain = line.split(":", 1)[1].strip()
@@ -69,11 +77,13 @@ def _ad_entitlements(ctx: ShellProtocol) -> dict[str, Any]:
                     kw in parts[0].lower()
                     for kw in ("domain admins", "admins", "administrators", "sudo", "wheel")
                 ):
-                    result["privileged_groups"].append({
-                        "name": parts[0],
-                        "gid": parts[2],
-                        "members": [m for m in parts[3].split(",") if m],
-                    })
+                    result["privileged_groups"].append(
+                        {
+                            "name": parts[0],
+                            "gid": parts[2],
+                            "members": [m for m in parts[3].split(",") if m],
+                        }
+                    )
         return result
 
     # --- net ads (Samba) ---
@@ -92,10 +102,12 @@ def _ad_entitlements(ctx: ShellProtocol) -> dict[str, Any]:
         r2 = ctx.run(["net", "ads", "group", "members", "Domain Admins"], check=False)
         if r2.ok() and r2.stdout:
             members = [m.strip() for m in r2.stdout.splitlines() if m.strip()]
-            result["privileged_groups"].append({
-                "name": "Domain Admins",
-                "members": members,
-            })
+            result["privileged_groups"].append(
+                {
+                    "name": "Domain Admins",
+                    "members": members,
+                }
+            )
 
         # Sample of domain users
         r3 = ctx.run(["net", "ads", "user"], check=False)
@@ -122,11 +134,13 @@ def _ad_entitlements(ctx: ShellProtocol) -> dict[str, Any]:
         if r3.ok() and r3.stdout:
             parts = r3.stdout.strip().split(":")
             if len(parts) >= 4:
-                result["privileged_groups"].append({
-                    "name": "Domain Admins",
-                    "gid": parts[2],
-                    "members": [m for m in parts[3].split(",") if m],
-                })
+                result["privileged_groups"].append(
+                    {
+                        "name": "Domain Admins",
+                        "gid": parts[2],
+                        "members": [m for m in parts[3].split(",") if m],
+                    }
+                )
         return result
 
     # Nothing available — AD not configured or no tools installed
@@ -138,31 +152,37 @@ def _ad_entitlements(ctx: ShellProtocol) -> dict[str, Any]:
 def _aws_iam(region: Optional[str], profile: Optional[str]) -> dict[str, Any]:
     try:
         import boto3
+
         session = boto3.Session(region_name=region, profile_name=profile)
         iam = session.client("iam")
 
         users = []
         for page in iam.get_paginator("list_users").paginate():
             for u in page["Users"]:
-                users.append({
-                    "username": u["UserName"],
-                    "user_id": u["UserId"],
-                    "arn": u["Arn"],
-                    "created": u["CreateDate"].isoformat(),
-                    "password_last_used": (
-                        u["PasswordLastUsed"].isoformat()
-                        if "PasswordLastUsed" in u else "never"
-                    ),
-                })
+                users.append(
+                    {
+                        "username": u["UserName"],
+                        "user_id": u["UserId"],
+                        "arn": u["Arn"],
+                        "created": u["CreateDate"].isoformat(),
+                        "password_last_used": (
+                            u["PasswordLastUsed"].isoformat()
+                            if "PasswordLastUsed" in u
+                            else "never"
+                        ),
+                    }
+                )
 
         groups = []
         for page in iam.get_paginator("list_groups").paginate():
             for g in page["Groups"]:
-                groups.append({
-                    "name": g["GroupName"],
-                    "group_id": g["GroupId"],
-                    "arn": g["Arn"],
-                })
+                groups.append(
+                    {
+                        "name": g["GroupName"],
+                        "group_id": g["GroupId"],
+                        "arn": g["Arn"],
+                    }
+                )
 
         return {"users": users, "groups": groups}
     except Exception as e:

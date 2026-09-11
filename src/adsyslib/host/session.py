@@ -23,6 +23,7 @@ Usage:
         r = host.run(["systemctl", "list-units", "--failed"])
         print(r.stdout)
 """
+
 import json
 import logging
 from typing import Any, Optional
@@ -47,15 +48,15 @@ logger = logging.getLogger(__name__)
 
 # Registry: name → scanner class. Add new scanners here.
 _SCANNER_REGISTRY = {
-    "apache":        ApacheScanner,
-    "dns":           DnsScanner,
-    "dovecot":       DovecotScanner,
-    "mysql":         MysqlScanner,
-    "nginx":         NginxScanner,
-    "postgresql":    PostgresScanner,
-    "postfix":       PostfixScanner,
-    "redis":         RedisScanner,
-    "spamassassin":  SpamassassinScanner,
+    "apache": ApacheScanner,
+    "dns": DnsScanner,
+    "dovecot": DovecotScanner,
+    "mysql": MysqlScanner,
+    "nginx": NginxScanner,
+    "postgresql": PostgresScanner,
+    "postfix": PostfixScanner,
+    "redis": RedisScanner,
+    "spamassassin": SpamassassinScanner,
 }
 
 
@@ -76,12 +77,18 @@ class HostSession:
         key_file: Optional[str] = None,
         password: Optional[str] = None,
         timeout: float = 30.0,
+        known_hosts: Optional[str] = None,
     ):
         self.host = host
         self.user = user
         self._shell = RemoteShell(
-            host=host, user=user, port=port,
-            key_file=key_file, password=password, timeout=timeout,
+            host=host,
+            user=user,
+            port=port,
+            key_file=key_file,
+            password=password,
+            timeout=timeout,
+            known_hosts=known_hosts,
         )
         self._scanners: dict[str, Any] = {}
 
@@ -117,8 +124,8 @@ class HostSession:
     # Raw execution
     # ------------------------------------------------------------------
 
-    def run(self, cmd: Any, check: bool = False) -> CommandResult:
-        return self._shell.run(cmd, check=check)
+    def run(self, cmd: Any, check: bool = False, **kwargs: Any) -> CommandResult:
+        return self._shell.run(cmd, check=check, **kwargs)
 
     def read_text(self, path: str) -> Optional[str]:
         return self._shell.read_text(path)
@@ -184,7 +191,8 @@ class HostSession:
             except Exception as e:
                 logger.warning(f"Scanner '{name}' failed on {self.host}: {e}")
                 results[name] = ScanResult(
-                    service=name, active=False,
+                    service=name,
+                    active=False,
                     issues=[f"Scanner error: {e}"],
                 )
         return HostReport(host=self.host, results=results)

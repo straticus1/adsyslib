@@ -2,76 +2,109 @@
 Authentik Identity Provider Management.
 High-level wrapper around authentik-client for managing users, groups, applications, and providers.
 """
+
 import logging
 from typing import Any, Optional
 
 import requests
 
+from adsyslib.http import APIError, request, validate_url
+
 logger = logging.getLogger(__name__)
+
 
 class AuthentikClient:
     """
     High-level Authentik API client.
     Provides simplified methods for common identity management tasks.
     """
-    def __init__(self, base_url: str, api_token: str, verify_ssl: bool = True):
+
+    def __init__(
+        self, base_url: str, api_token: str, verify_ssl: bool = True, timeout: float = 30.0
+    ):
         """
         Initialize Authentik client.
-        
+
         Args:
             base_url: Authentik instance URL (e.g., https://auth.example.com)
             api_token: API token with appropriate permissions
             verify_ssl: Whether to verify SSL certificates
         """
-        self.base_url = base_url.rstrip("/")
+        if timeout <= 0:
+            raise ValueError("timeout must be positive")
+        self.timeout = timeout
+        self.base_url = validate_url(base_url)
         self.api_token = api_token
         self.verify_ssl = verify_ssl
         self.session = requests.Session()
-        self.session.headers.update({
-            "Authorization": f"Bearer {api_token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        })
+        self.session.headers.update(
+            {
+                "Authorization": f"Bearer {api_token}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+        )
         self.session.verify = verify_ssl
 
     def _request(self, method: str, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """Make an API request."""
         url = f"{self.base_url}/api/v3/{endpoint.lstrip('/')}"
         logger.debug(f"Authentik API: {method} {url}")
-        
-        response = self.session.request(method, url, **kwargs)
-        response.raise_for_status()
-        
-        if response.content:
-            return response.json()
-        return {}
+
+        return request(self.session, method, url, self.timeout, **kwargs)
+
+    def close(self) -> None:
+        self.session.close()
+
+    def __enter__(self) -> "AuthentikClient":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+    def _list(self, endpoint: str, params: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
+        """Collect every page using fixed-origin page numbers, never server-supplied URLs."""
+        query = dict(params or {})
+        results = []
+        for page in range(1, 10001):
+            query["page"] = page
+            data = self._request("GET", endpoint, params=dict(query))
+            items = data.get("results")
+            if not isinstance(items, list):
+                raise APIError("Invalid paginated API response")
+            results.extend(items)
+            total = data.get("pagination", {}).get("total_pages", 1)
+            if page >= total:
+                return results
+            if not items:
+                raise APIError("Pagination ended before the advertised final page")
+        raise APIError("Pagination exceeded 10000 pages")
 
     # ==================== USERS ====================
-    
+
     def list_users(self, search: Optional[str] = None) -> list[dict[str, Any]]:
         """List all users, optionally filtered by search term."""
         params = {}
         if search:
             params["search"] = search
-        result = self._request("GET", "/core/users/", params=params)
-        return result.get("results", [])
+        return self._list("/core/users/", params=params)
 
     def get_user(self, user_id: int) -> dict[str, Any]:
         """Get a specific user by ID."""
         return self._request("GET", f"/core/users/{user_id}/")
 
     def create_user(
-        self, 
-        username: str, 
-        name: str, 
+        self,
+        username: str,
+        name: str,
         email: Optional[str] = None,
         is_active: bool = True,
         groups: Optional[list[str]] = None,
-        attributes: Optional[dict[str, Any]] = None
+        attributes: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """
         Create a new user.
-        
+
         Args:
             username: Unique username
             name: Display name
@@ -91,7 +124,7 @@ class AuthentikClient:
             data["groups"] = groups
         if attributes:
             data["attributes"] = attributes
-            
+
         logger.info(f"Creating Authentik user: {username}")
         return self._request("POST", "/core/users/", json=data)
 
@@ -117,19 +150,18 @@ class AuthentikClient:
         params = {}
         if search:
             params["search"] = search
-        result = self._request("GET", "/core/groups/", params=params)
-        return result.get("results", [])
+        return self._list("/core/groups/", params=params)
 
     def get_group(self, group_id: str) -> dict[str, Any]:
         """Get a specific group by UUID."""
         return self._request("GET", f"/core/groups/{group_id}/")
 
     def create_group(
-        self, 
-        name: str, 
+        self,
+        name: str,
         is_superuser: bool = False,
         parent: Optional[str] = None,
-        attributes: Optional[dict[str, Any]] = None
+        attributes: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Create a new group."""
         data = {
@@ -140,7 +172,7 @@ class AuthentikClient:
             data["parent"] = parent
         if attributes:
             data["attributes"] = attributes
-            
+
         logger.info(f"Creating Authentik group: {name}")
         return self._request("POST", "/core/groups/", json=data)
 
@@ -171,8 +203,7 @@ class AuthentikClient:
 
     def list_applications(self) -> list[dict[str, Any]]:
         """List all applications."""
-        result = self._request("GET", "/core/applications/")
-        return result.get("results", [])
+        return self._list("/core/applications/")
 
     def get_application(self, slug: str) -> dict[str, Any]:
         """Get an application by slug."""
@@ -184,7 +215,7 @@ class AuthentikClient:
         slug: str,
         provider: Optional[int] = None,
         meta_launch_url: Optional[str] = None,
-        open_in_new_tab: bool = False
+        open_in_new_tab: bool = False,
     ) -> dict[str, Any]:
         """Create a new application."""
         data = {
@@ -196,7 +227,7 @@ class AuthentikClient:
             data["provider"] = provider
         if meta_launch_url:
             data["meta_launch_url"] = meta_launch_url
-            
+
         logger.info(f"Creating Authentik application: {name}")
         return self._request("POST", "/core/applications/", json=data)
 
@@ -210,7 +241,7 @@ class AuthentikClient:
     def list_providers(self, provider_type: Optional[str] = None) -> list[dict[str, Any]]:
         """
         List providers.
-        
+
         Args:
             provider_type: Filter by type (oauth2, saml, proxy, ldap, etc.)
         """
@@ -218,8 +249,7 @@ class AuthentikClient:
             endpoint = f"/providers/{provider_type}/"
         else:
             endpoint = "/providers/all/"
-        result = self._request("GET", endpoint)
-        return result.get("results", [])
+        return self._list(endpoint)
 
     def create_oauth2_provider(
         self,
@@ -228,7 +258,7 @@ class AuthentikClient:
         client_type: str = "confidential",
         client_id: Optional[str] = None,
         client_secret: Optional[str] = None,
-        redirect_uris: Optional[str] = None
+        redirect_uris: Optional[str] = None,
     ) -> dict[str, Any]:
         """Create an OAuth2 provider."""
         data = {
@@ -242,16 +272,12 @@ class AuthentikClient:
             data["client_secret"] = client_secret
         if redirect_uris:
             data["redirect_uris"] = redirect_uris
-            
+
         logger.info(f"Creating OAuth2 provider: {name}")
         return self._request("POST", "/providers/oauth2/", json=data)
 
     def create_proxy_provider(
-        self,
-        name: str,
-        authorization_flow: str,
-        external_host: str,
-        mode: str = "forward_single"
+        self, name: str, authorization_flow: str, external_host: str, mode: str = "forward_single"
     ) -> dict[str, Any]:
         """Create a proxy provider for forward auth."""
         data = {
@@ -267,8 +293,7 @@ class AuthentikClient:
 
     def list_flows(self) -> list[dict[str, Any]]:
         """List all flows."""
-        result = self._request("GET", "/flows/instances/")
-        return result.get("results", [])
+        return self._list("/flows/instances/")
 
     def get_flow(self, slug: str) -> dict[str, Any]:
         """Get a flow by slug."""
@@ -281,8 +306,7 @@ class AuthentikClient:
         params = {}
         if user_id:
             params["user"] = user_id
-        result = self._request("GET", "/core/tokens/", params=params)
-        return result.get("results", [])
+        return self._list("/core/tokens/", params=params)
 
     def create_token(
         self,
@@ -290,7 +314,7 @@ class AuthentikClient:
         user: int,
         intent: str = "api",
         expiring: bool = True,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> dict[str, Any]:
         """Create an API token for a user."""
         data = {
@@ -301,7 +325,7 @@ class AuthentikClient:
         }
         if description:
             data["description"] = description
-            
+
         logger.info(f"Creating token: {identifier}")
         return self._request("POST", "/core/tokens/", json=data)
 

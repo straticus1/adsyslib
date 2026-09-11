@@ -5,6 +5,7 @@ identical semantics (None/[]/False for missing paths, never raising).
 Shell runs against a real tmp directory; DockerShell/KubeShell/RemoteShell run
 against fakes so the suite is hermetic.
 """
+
 import pytest
 
 from adsyslib.core import CommandResult, Shell
@@ -27,7 +28,7 @@ def _fake_exec_run(shell, tree):
         args = cmd if isinstance(cmd, list) else cmd.split()
         prog, rest = args[0], args[1:]
         if prog == "cat":
-            path = rest[0]
+            path = rest[-1]
             if path in tree and tree[path] is not None:
                 return _result(stdout=tree[path])
             return _result(exit_code=1)

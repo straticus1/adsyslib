@@ -2,6 +2,8 @@ import logging
 import time
 from typing import Optional, Union
 
+from adsyslib.core import AdsysError, ShellConnectionError
+
 try:
     import docker
     from docker.errors import DockerException, NotFound
@@ -12,32 +14,39 @@ except ImportError:  # optional dependency — pip install 'adsyslib[container]'
 
 logger = logging.getLogger(__name__)
 
+
 class DockerManager:
     """
     High-level wrapper around docker-py for 10x developer experience.
     Handles connection, running containers with health checks, and cleanup.
     """
-    def __init__(self, base_url: Optional[str] = None):
+
+    def __init__(self, base_url: Optional[str] = None, timeout: float = 30.0):
         if docker is None:
             raise ImportError(
                 "docker (docker-py) is required for DockerManager:\n"
                 "  pip install 'adsyslib[container]'"
             )
         try:
-            self.client = docker.DockerClient(base_url=base_url or "unix://var/run/docker.sock")
+            self.client = (
+                docker.DockerClient(base_url=base_url, timeout=timeout)
+                if base_url
+                else docker.from_env(timeout=timeout)
+            )
             self.client.ping()
         except DockerException as e:
-            logger.warning(f"Could not connect to Docker: {e}")
-            self.client = None
+            if getattr(self, "client", None) is not None:
+                self.client.close()
+            raise ShellConnectionError("Could not connect to Docker") from e
 
     def _check_client(self) -> None:
         if not self.client:
-            raise RuntimeError("Docker client not initialized (daemon might be down).")
+            raise ShellConnectionError("Docker client not initialized (daemon might be down).")
 
     def run_container(
-        self, 
-        image: str, 
-        name: Optional[str] = None, 
+        self,
+        image: str,
+        name: Optional[str] = None,
         detach: bool = True,
         ports: Optional[dict[str, str]] = None,
         env: Optional[dict[str, str]] = None,
@@ -45,14 +54,23 @@ class DockerManager:
         command: Optional[Union[str, list[str]]] = None,
         wait_for_log: Optional[str] = None,
         wait_timeout: int = 30,
-        auto_remove: bool = False
+        auto_remove: bool = False,
+        replace: bool = False,
+        user: Optional[str] = None,
+        read_only: bool = False,
+        cap_drop: Optional[list[str]] = None,
+        security_opt: Optional[list[str]] = None,
     ) -> Container:
         """
         Run a container with advanced features:
         - wait_for_log: Blocks until a specific string appears in logs.
         """
         self._check_client()
-        
+        if wait_timeout <= 0:
+            raise ValueError("wait_timeout must be positive")
+        if wait_for_log and not detach:
+            raise ValueError("wait_for_log requires detach=True")
+
         # Pull if missing
         try:
             self.client.images.get(image)
@@ -64,6 +82,10 @@ class DockerManager:
         if name:
             try:
                 existing = self.client.containers.get(name)
+                if not replace:
+                    raise AdsysError(
+                        f"Container {name!r} already exists; pass replace=True to replace it"
+                    )
                 logger.info(f"Removing existing container {name}...")
                 existing.remove(force=True)
             except NotFound:
@@ -78,33 +100,30 @@ class DockerManager:
             environment=env,
             volumes=volumes,
             command=command,
-            remove=auto_remove
+            remove=auto_remove,
+            user=user,
+            read_only=read_only,
+            cap_drop=cap_drop,
+            security_opt=security_opt,
         )
 
         if wait_for_log and detach:
             logger.info(f"Waiting for log pattern '{wait_for_log}' in {container.name}...")
-            start_time = time.time()
-            found = False
-
+            deadline = time.monotonic() + wait_timeout
             try:
-                for line in container.logs(stream=True, follow=True):
-                    line_str = line.decode('utf-8').strip()
-                    logger.debug(f"Container log: {line_str}")
-
-                    if wait_for_log in line_str:
-                        logger.info(f"Found match: {line_str}")
-                        found = True
+                while time.monotonic() < deadline:
+                    logs = container.logs(stream=False, tail=1000).decode("utf-8", "replace")
+                    if wait_for_log in logs:
                         break
-
-                    if time.time() - start_time > wait_timeout:
-                        logger.error(f"Timeout waiting for log '{wait_for_log}'")
-                        container.stop()
-                        raise TimeoutError(f"Container did not match log '{wait_for_log}' in {wait_timeout}s")
-            except Exception as e:
-                if not found:
-                    logger.error(f"Error while waiting for log: {e}")
-                    container.stop()
-                    raise
+                    container.reload()
+                    if container.status in {"exited", "dead"}:
+                        raise AdsysError("Container exited before becoming ready")
+                    time.sleep(min(0.1, max(0, deadline - time.monotonic())))
+                else:
+                    raise AdsysError(f"Container readiness timed out after {wait_timeout}s")
+            except Exception:
+                container.stop()
+                raise
 
         return container
 
@@ -120,4 +139,16 @@ class DockerManager:
     def get_container_ip(self, container: Container) -> str:
         """Helper to get primary IP address of a container."""
         container.reload()
-        return container.attrs['NetworkSettings']['IPAddress']
+        return container.attrs["NetworkSettings"]["IPAddress"]
+
+    def close(self) -> None:
+        """Release the Docker API connection."""
+        if self.client is not None:
+            self.client.close()
+            self.client = None
+
+    def __enter__(self) -> "DockerManager":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()

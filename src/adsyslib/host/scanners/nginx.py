@@ -1,6 +1,7 @@
 """
 Nginx scanner — service status, config test, sites, TLS protocols.
 """
+
 import re
 from typing import Any
 

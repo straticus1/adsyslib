@@ -11,6 +11,7 @@ pass the shell itself:
     collect(ctx=Shell())            # local
     collect(ctx=remote_shell)       # SSH — RemoteShell already satisfies ShellProtocol
 """
+
 import warnings
 from typing import Any, Optional
 

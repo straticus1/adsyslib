@@ -1,6 +1,7 @@
 """
 Orchestrates collectors → evaluates controls → builds an AuditPackage.
 """
+
 import logging
 from typing import Any, Optional
 
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 # Per-section control evaluators
 # ---------------------------------------------------------------------------
 
+
 def _auth_controls(data: dict[str, Any]) -> list[ControlResult]:
     results = []
     sshd = data.get("sshd", {})
@@ -26,23 +28,27 @@ def _auth_controls(data: dict[str, Any]) -> list[ControlResult]:
     policy = data.get("password_policy", {})
 
     # IA-2: MFA detected
-    results.append(ControlResult(
-        id="IA-2",
-        title=control_title("IA-2"),
-        status="pass" if mfa.get("mfa_detected") else "fail",
-        evidence=f"mfa_detected={mfa.get('mfa_detected')}, modules={mfa.get('pam_modules', [])}",
-        framework="nist-800-53",
-    ))
+    results.append(
+        ControlResult(
+            id="IA-2",
+            title=control_title("IA-2"),
+            status="pass" if mfa.get("mfa_detected") else "fail",
+            evidence=f"mfa_detected={mfa.get('mfa_detected')}, modules={mfa.get('pam_modules', [])}",
+            framework="nist-800-53",
+        )
+    )
 
     # AC-17: no direct root SSH
     root_login = sshd.get("permit_root_login", "unknown").lower()
-    results.append(ControlResult(
-        id="AC-17",
-        title=control_title("AC-17"),
-        status="pass" if root_login in ("no", "prohibit-password") else "fail",
-        evidence=f"PermitRootLogin={root_login}",
-        framework="nist-800-53",
-    ))
+    results.append(
+        ControlResult(
+            id="AC-17",
+            title=control_title("AC-17"),
+            status="pass" if root_login in ("no", "prohibit-password") else "fail",
+            evidence=f"PermitRootLogin={root_login}",
+            framework="nist-800-53",
+        )
+    )
 
     # IA-5: password max age ≤ 90 days
     max_days = policy.get("pass_max_days")
@@ -50,29 +56,33 @@ def _auth_controls(data: dict[str, Any]) -> list[ControlResult]:
         ia5_status = "pass" if max_days and int(max_days) <= 90 else "fail"
     except (ValueError, TypeError):
         ia5_status = "not_applicable"
-    results.append(ControlResult(
-        id="IA-5",
-        title=control_title("IA-5"),
-        status=ia5_status,
-        evidence=f"PASS_MAX_DAYS={max_days}",
-        framework="nist-800-53",
-    ))
+    results.append(
+        ControlResult(
+            id="IA-5",
+            title=control_title("IA-5"),
+            status=ia5_status,
+            evidence=f"PASS_MAX_DAYS={max_days}",
+            framework="nist-800-53",
+        )
+    )
 
     # IA-8: non-org users require pubkey or MFA — no password-only auth
     pwd_auth = sshd.get("password_authentication", "yes").lower()
     pubkey_auth = sshd.get("pubkey_authentication", "yes").lower()
     ia8_pass = pwd_auth == "no" or pubkey_auth == "yes" or mfa.get("mfa_detected")
-    results.append(ControlResult(
-        id="IA-8",
-        title=control_title("IA-8"),
-        status="pass" if ia8_pass else "fail",
-        evidence=(
-            f"PasswordAuthentication={pwd_auth}, "
-            f"PubkeyAuthentication={pubkey_auth}, "
-            f"mfa_detected={mfa.get('mfa_detected')}"
-        ),
-        framework="nist-800-53",
-    ))
+    results.append(
+        ControlResult(
+            id="IA-8",
+            title=control_title("IA-8"),
+            status="pass" if ia8_pass else "fail",
+            evidence=(
+                f"PasswordAuthentication={pwd_auth}, "
+                f"PubkeyAuthentication={pubkey_auth}, "
+                f"mfa_detected={mfa.get('mfa_detected')}"
+            ),
+            framework="nist-800-53",
+        )
+    )
 
     return results
 
@@ -135,9 +145,7 @@ def _admin_controls(data: dict[str, Any]) -> list[ControlResult]:
 
 def _entitlement_controls(data: dict[str, Any]) -> list[ControlResult]:
     local_groups = data.get("local_groups", [])
-    priv_group = next(
-        (g for g in local_groups if g["name"] in ("sudo", "wheel", "admin")), None
-    )
+    priv_group = next((g for g in local_groups if g["name"] in ("sudo", "wheel", "admin")), None)
     priv_members = priv_group["members"] if priv_group else []
 
     return [
@@ -186,18 +194,20 @@ def _logging_controls(data: dict[str, Any]) -> list[ControlResult]:
         and perms.get("owner_uid", -1) == 0
         and perms.get("permissions", "777")[2] == "0"
     )
-    results.append(ControlResult(
-        id="AU-9",
-        title=control_title("AU-9"),
-        status="pass" if au9_pass else "fail",
-        evidence=(
-            f"path={perms.get('path')}, "
-            f"permissions={perms.get('permissions')}, "
-            f"owner_uid={perms.get('owner_uid')}, "
-            f"remote_forwarding={forwarding.get('forwarding_configured')}"
-        ),
-        framework="nist-800-53",
-    ))
+    results.append(
+        ControlResult(
+            id="AU-9",
+            title=control_title("AU-9"),
+            status="pass" if au9_pass else "fail",
+            evidence=(
+                f"path={perms.get('path')}, "
+                f"permissions={perms.get('permissions')}, "
+                f"owner_uid={perms.get('owner_uid')}, "
+                f"remote_forwarding={forwarding.get('forwarding_configured')}"
+            ),
+            framework="nist-800-53",
+        )
+    )
 
     return results
 
@@ -281,7 +291,16 @@ _HOST_ISSUE_CONTROLS = {
     },
     # Availability / service continuity → CP-2 / SI-2
     "si-2": {
-        "services": {"nginx", "apache", "postfix", "dns", "dovecot", "mysql", "postgresql", "redis"},
+        "services": {
+            "nginx",
+            "apache",
+            "postfix",
+            "dns",
+            "dovecot",
+            "mysql",
+            "postgresql",
+            "redis",
+        },
         "keywords": {"not running", "inactive", "scanner error"},
     },
     # Data-at-rest / database security → SC-28
@@ -292,7 +311,13 @@ _HOST_ISSUE_CONTROLS = {
     # Access control / authentication → AC-17
     "ac-17": {
         "services": {"redis", "mysql", "postgresql"},
-        "keywords": {"unauthenticated", "no requirepass", "trust", "bind_address", "all interfaces"},
+        "keywords": {
+            "unauthenticated",
+            "no requirepass",
+            "trust",
+            "bind_address",
+            "all interfaces",
+        },
     },
 }
 
@@ -322,19 +347,19 @@ def host_controls(host_report: Any) -> list[ControlResult]:
                 if svc_name not in mapping["services"]:
                     continue
                 if any(kw in issue_lower for kw in mapping["keywords"]):
-                    all_issues.setdefault(ctrl_id.upper(), []).append(
-                        f"{svc_name}: {issue}"
-                    )
+                    all_issues.setdefault(ctrl_id.upper(), []).append(f"{svc_name}: {issue}")
 
     results = []
     for ctrl_id, evidence_list in sorted(all_issues.items()):
-        results.append(ControlResult(
-            id=ctrl_id,
-            title=control_title(ctrl_id),
-            status="fail",
-            evidence=f"host={host_report.host}; " + "; ".join(evidence_list),
-            framework="nist-800-53",
-        ))
+        results.append(
+            ControlResult(
+                id=ctrl_id,
+                title=control_title(ctrl_id),
+                status="fail",
+                evidence=f"host={host_report.host}; " + "; ".join(evidence_list),
+                framework="nist-800-53",
+            )
+        )
     return results
 
 
@@ -357,9 +382,7 @@ def merge_host_findings(package: "AuditPackage", host_report: Any) -> "AuditPack
             if existing_ctrl.status == "pass":
                 # Override: host scan found a real issue
                 existing_ctrl.status = "fail"
-                existing_ctrl.evidence = (
-                    existing_ctrl.evidence + " | HOST_SCAN: " + ctrl.evidence
-                )
+                existing_ctrl.evidence = existing_ctrl.evidence + " | HOST_SCAN: " + ctrl.evidence
         else:
             package.controls.append(ctrl)
 
@@ -369,6 +392,7 @@ def merge_host_findings(package: "AuditPackage", host_report: Any) -> "AuditPack
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
+
 
 def build_package(
     frameworks: list[str],

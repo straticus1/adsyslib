@@ -3,7 +3,9 @@ from typing import Optional
 
 import typer
 
-app = typer.Typer(help="Generate and compare compliance audit packages (FedRAMP, HIPAA, SOX, GLBA).")
+app = typer.Typer(
+    help="Generate and compare compliance audit packages (FedRAMP, HIPAA, SOX, GLBA)."
+)
 
 VALID_FRAMEWORKS = {"fedramp", "hipaa", "sox", "glba"}
 
@@ -11,22 +13,29 @@ VALID_FRAMEWORKS = {"fedramp", "hipaa", "sox", "glba"}
 @app.command("generate")
 def generate(
     frameworks: list[str] = typer.Option(
-        ["fedramp"], "--framework", "-f",
+        ["fedramp"],
+        "--framework",
+        "-f",
         help="Compliance framework(s): fedramp, hipaa, sox, glba",
     ),
     output: Path = typer.Option(
-        "audit_package.json", "--output", "-o",
+        "audit_package.json",
+        "--output",
+        "-o",
         help="Output file path",
     ),
     fmt: str = typer.Option(
-        "json", "--format",
+        "json",
+        "--format",
         help="Output format: json, yaml, csv",
     ),
     # Remote target options
     host: Optional[str] = typer.Option(None, "--host", "-H", help="Remote host to audit over SSH"),
     user: Optional[str] = typer.Option(None, "--user", "-u", help="SSH username"),
     key_file: Optional[str] = typer.Option(None, "--key-file", "-i", help="SSH private key path"),
-    password: Optional[str] = typer.Option(None, "--password", help="SSH password (prefer key auth)"),
+    password: Optional[str] = typer.Option(
+        None, "--password", help="SSH password (prefer key auth)"
+    ),
     ssh_port: int = typer.Option(22, "--port", help="SSH port"),
     # AWS / IaC options
     aws_iam: bool = typer.Option(False, "--aws-iam", help="Include AWS IAM entitlements"),
@@ -35,11 +44,14 @@ def generate(
     ansible_log: str = typer.Option("/var/log/ansible.log", "--ansible-log"),
     # Drift options
     baseline: Optional[Path] = typer.Option(
-        None, "--baseline", "-b",
+        None,
+        "--baseline",
+        "-b",
         help="Path to a previous audit package JSON to diff against",
     ),
     drift_output: Optional[Path] = typer.Option(
-        None, "--drift-output",
+        None,
+        "--drift-output",
         help="Where to save the drift report (default: drift_<output>)",
     ),
 ) -> None:
@@ -61,6 +73,7 @@ def generate(
     target = None
     if host:
         from adsyslib.remote import RemoteShell
+
         if not user:
             typer.echo("--user is required when --host is specified", err=True)
             raise typer.Exit(code=1)

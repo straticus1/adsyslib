@@ -1,6 +1,7 @@
 """
 MySQL/MariaDB scanner — service status, version, config, security settings.
 """
+
 from typing import Any
 
 from .base import ScanResult, ServiceScanner
@@ -71,7 +72,7 @@ class MysqlScanner(ServiceScanner):
         if not active:
             issues.append("mysql/mariadb is not running")
         bind = config.get("bind_address", "")
-        if bind in ("0.0.0.0", "::") :
+        if bind in ("0.0.0.0", "::"):
             issues.append(f"mysql bound to all interfaces: bind_address={bind}")
         if config.get("local_infile", "").lower() in ("1", "on", "true"):
             issues.append("local_infile is enabled — allows arbitrary file reads")

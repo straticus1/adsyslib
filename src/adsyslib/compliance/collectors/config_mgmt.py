@@ -2,6 +2,7 @@
 Config management proof collector.
 Maps to controls: CM-2, CM-3.
 """
+
 import json
 import logging
 import os
@@ -63,13 +64,15 @@ def _git_evidence(search_paths: list[str], ctx: ShellProtocol) -> list[dict[str,
         if result.ok() and result.stdout:
             parts = result.stdout.strip().split("|", 3)
             if len(parts) == 4:
-                repos.append({
-                    "path": path,
-                    "last_commit_sha": parts[0],
-                    "author_email": parts[1],
-                    "committed_at": parts[2],
-                    "message": parts[3],
-                })
+                repos.append(
+                    {
+                        "path": path,
+                        "last_commit_sha": parts[0],
+                        "author_email": parts[1],
+                        "committed_at": parts[2],
+                        "message": parts[3],
+                    }
+                )
     return repos
 
 

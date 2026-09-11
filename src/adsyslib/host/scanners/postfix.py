@@ -1,6 +1,7 @@
 """
 Postfix scanner — mail server status, queue depth, TLS config, recent errors.
 """
+
 import re
 from typing import Any
 
@@ -11,13 +12,21 @@ _STRONG_TLS = {"encrypt", "may", "dane", "dane-only", "secure"}
 
 # postconf keys we care about
 _CONFIG_KEYS = [
-    "myhostname", "mydomain", "myorigin",
-    "smtpd_tls_security_level", "smtp_tls_security_level",
-    "smtpd_tls_cert_file", "smtpd_tls_key_file",
-    "smtpd_tls_protocols", "smtp_tls_protocols",
-    "inet_interfaces", "inet_protocols",
-    "smtpd_relay_restrictions", "smtpd_recipient_restrictions",
-    "mailq_path", "queue_directory",
+    "myhostname",
+    "mydomain",
+    "myorigin",
+    "smtpd_tls_security_level",
+    "smtp_tls_security_level",
+    "smtpd_tls_cert_file",
+    "smtpd_tls_key_file",
+    "smtpd_tls_protocols",
+    "smtp_tls_protocols",
+    "inet_interfaces",
+    "inet_protocols",
+    "smtpd_relay_restrictions",
+    "smtpd_recipient_restrictions",
+    "mailq_path",
+    "queue_directory",
 ]
 
 
@@ -69,7 +78,8 @@ class PostfixScanner(ServiceScanner):
             result = self._run(["tail", f"-{lines}", log])
             if result.ok() and result.stdout:
                 return [
-                    ln.strip() for ln in result.stdout.splitlines()
+                    ln.strip()
+                    for ln in result.stdout.splitlines()
                     if any(kw in ln.lower() for kw in ("error", "fatal", "panic", "reject"))
                 ][-20:]
         return []

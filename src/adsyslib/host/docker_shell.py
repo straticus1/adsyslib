@@ -4,7 +4,9 @@ DockerShell — runs commands inside a Docker container via `docker exec`.
 Implements the same interface as RemoteShell so all existing service
 scanners work inside containers without modification.
 """
+
 import logging
+import shlex
 from typing import Any, Optional
 
 from adsyslib.core import CommandResult, ShellConnectionError
@@ -27,9 +29,12 @@ class DockerShell:
         docker_cmd: str = "docker",
         user: Optional[str] = None,
     ):
+        if not container or container.startswith("-"):
+            raise ValueError("container must be a name or ID")
         self.container = container
         self.host = f"docker:{container}"
-        self.user = user or "root"
+        self.user = user or "default"
+        self._exec_user = user
         self._docker = docker_cmd
 
     def connect(self) -> "DockerShell":
@@ -49,20 +54,29 @@ class DockerShell:
     def __exit__(self, *_: object) -> None:
         self.disconnect()
 
-    def run(self, cmd: Any, check: bool = False, **_: Any) -> CommandResult:
+    def run(self, cmd: Any, check: bool = False, **kwargs: Any) -> CommandResult:
+        base = [self._docker, "exec"]
+        if self._exec_user:
+            base += ["--user", self._exec_user]
+        if kwargs.get("input") is not None:
+            base.append("-i")
+        base.append(self.container)
+        use_shell = kwargs.pop("shell", True)
+        if isinstance(cmd, str) and not use_shell:
+            cmd = shlex.split(cmd)
         if isinstance(cmd, list):
-            full = [self._docker, "exec", self.container] + [str(c) for c in cmd]
+            full = base + [str(c) for c in cmd]
         else:
-            full = [self._docker, "exec", self.container, "sh", "-c", str(cmd)]
-        result = _run(full, check=check)
+            full = base + ["sh", "-c", str(cmd)]
+        result = _run(full, check=check, **kwargs)
         return result
 
     def read_text(self, path: str) -> Optional[str]:
-        r = self.run(["cat", path])
+        r = self.run(["cat", "--", path], strip_output=False, log_output=False)
         return r.stdout if r.ok() else None
 
     def list_dir(self, path: str) -> list[str]:
-        r = self.run(["ls", "-1", path])
+        r = self.run(["ls", "-1", "--", path])
         return [e.strip() for e in r.stdout.splitlines() if e.strip()] if r.ok() else []
 
     def path_exists(self, path: str) -> bool:
@@ -72,7 +86,7 @@ class DockerShell:
         return self.run(["test", "-d", path]).exit_code == 0
 
     def path_stat(self, path: str) -> Optional[dict[str, Any]]:
-        r = self.run(["stat", "-c", "%a %u %Y", path])
+        r = self.run(["stat", "-c", "%a %u %Y", "--", path])
         if not r.ok():
             return None
         parts = r.stdout.strip().split()

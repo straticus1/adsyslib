@@ -19,10 +19,13 @@ Usage:
     report.print_summary()
     report.save("fleet_report.json")
 """
+
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Optional
+
+from adsyslib.files import write_private
 
 logger = logging.getLogger(__name__)
 
@@ -86,15 +89,14 @@ class FleetReport:
         return json.dumps(self.summary(), indent=indent, default=str)
 
     def save(self, path: str) -> None:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(self.to_json())
+        write_private(path, self.to_json())
 
     def print_summary(self) -> None:
         total = len(self.host_reports) + len(self.errors)
         ok_count = sum(1 for r in self.host_reports.values() if r.ok())
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Fleet Report: {ok_count}/{total} hosts OK")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         for _host, report in sorted(self.host_reports.items()):
             report.print_summary()
@@ -130,14 +132,18 @@ def scan_fleet(
     Returns:
         FleetReport with per-host results and aggregate summary.
     """
+    if workers < 1:
+        raise ValueError("workers must be positive")
+    labels = [session.host for session in sessions]
+    if len(set(labels)) != len(labels):
+        raise ValueError(
+            "Fleet target labels must be unique; duplicate targets would overwrite results"
+        )
     host_reports: dict[str, Any] = {}
     errors: dict[str, str] = {}
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {
-            pool.submit(_scan_one, session, services): session
-            for session in sessions
-        }
+        futures = {pool.submit(_scan_one, session, services): session for session in sessions}
         for future in as_completed(futures):
             host, report, error = future.result()
             if error:

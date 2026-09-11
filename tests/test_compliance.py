@@ -4,6 +4,7 @@ Tests for the compliance audit package module.
 Uses a fake CollectionContext so tests are hermetic — no real SSH,
 no real filesystem reads, no package manager calls.
 """
+
 import json
 from pathlib import Path
 from typing import Any, Optional
@@ -34,6 +35,7 @@ from adsyslib.core import CommandResult
 # Fake context
 # ---------------------------------------------------------------------------
 
+
 class FakeContext(CollectionContext):
     """
     Programmable fake for unit testing collectors without touching disk or SSH.
@@ -58,14 +60,20 @@ class FakeContext(CollectionContext):
         # Try exact match first, then prefix match
         stdout = self._commands.get(key, "")
         exit_code = 0 if stdout or key in self._commands else 1
-        return CommandResult(stdout=stdout, stderr="", exit_code=exit_code, command=key, duration=0.0)
+        return CommandResult(
+            stdout=stdout, stderr="", exit_code=exit_code, command=key, duration=0.0
+        )
 
     def read_text(self, path: str) -> Optional[str]:
         return self._files.get(path)
 
     def list_dir(self, path: str) -> list[str]:
         prefix = path.rstrip("/") + "/"
-        names = [k[len(prefix):] for k in self._files if k.startswith(prefix) and "/" not in k[len(prefix):]]
+        names = [
+            k[len(prefix) :]
+            for k in self._files
+            if k.startswith(prefix) and "/" not in k[len(prefix) :]
+        ]
         return names
 
     def is_dir(self, path: str) -> bool:
@@ -83,6 +91,7 @@ class FakeContext(CollectionContext):
 # ---------------------------------------------------------------------------
 # controls.py
 # ---------------------------------------------------------------------------
+
 
 class TestControls:
     def test_known_control_title(self):
@@ -131,11 +140,13 @@ PAM_GOOGLE = "auth required pam_google_authenticator.so\n"
 
 class TestAuthCollector:
     def _ctx(self, sshd=SSHD_HARDENED, login_defs=LOGIN_DEFS_90, pam=""):
-        return FakeContext(files={
-            "/etc/ssh/sshd_config": sshd,
-            "/etc/login.defs": login_defs,
-            "/etc/pam.d/sshd": pam,
-        })
+        return FakeContext(
+            files={
+                "/etc/ssh/sshd_config": sshd,
+                "/etc/login.defs": login_defs,
+                "/etc/pam.d/sshd": pam,
+            }
+        )
 
     def test_root_login_no(self):
         data = auth.collect(ctx=self._ctx())
@@ -213,11 +224,7 @@ class TestAdminCollector:
 # entitlements collector
 # ---------------------------------------------------------------------------
 
-GROUP_TEXT = (
-    "root:x:0:\n"
-    "sudo:x:27:ryan,alice\n"
-    "docker:x:998:ryan\n"
-)
+GROUP_TEXT = "root:x:0:\nsudo:x:27:ryan,alice\ndocker:x:998:ryan\n"
 
 
 class TestEntitlementsCollector:
@@ -247,10 +254,12 @@ class TestEntitlementsCollector:
     # --- Active Directory entitlements ---
 
     def test_ad_realm_joined(self):
-        ctx = FakeContext(commands={
-            "realm list": "corp.example.com\n  domain-name: corp.example.com\n",
-            "getent group": GROUP_TEXT,
-        })
+        ctx = FakeContext(
+            commands={
+                "realm list": "corp.example.com\n  domain-name: corp.example.com\n",
+                "getent group": GROUP_TEXT,
+            }
+        )
         data = entitlements.collect(ctx=ctx, include_ad=True)
         ad = data["active_directory"]
         assert ad["joined"] is True
@@ -265,11 +274,13 @@ class TestEntitlementsCollector:
         assert ad["tool_used"] is None
 
     def test_ad_net_ads_fallback(self):
-        ctx = FakeContext(commands={
-            "net ads info": "Realm: CORP.EXAMPLE.COM\nLDAP server name: dc1.corp.example.com\n",
-            "net ads group members Domain Admins": "CORP\\\\administrator\nCORP\\\\svcaccount\n",
-            "net ads user": "administrator\nalice\nbob\n",
-        })
+        ctx = FakeContext(
+            commands={
+                "net ads info": "Realm: CORP.EXAMPLE.COM\nLDAP server name: dc1.corp.example.com\n",
+                "net ads group members Domain Admins": "CORP\\\\administrator\nCORP\\\\svcaccount\n",
+                "net ads user": "administrator\nalice\nbob\n",
+            }
+        )
         data = entitlements.collect(ctx=ctx, include_ad=True)
         ad = data["active_directory"]
         assert ad["joined"] is True
@@ -278,11 +289,13 @@ class TestEntitlementsCollector:
         assert ad["privileged_groups"][0]["name"] == "Domain Admins"
 
     def test_ad_wbinfo_fallback(self):
-        ctx = FakeContext(commands={
-            "wbinfo --own-domain": "CORP\n",
-            "wbinfo -u": "CORP\\\\alice\nCORP\\\\bob\n",
-            "wbinfo --group-info Domain Admins": "Domain Admins:x:10512:CORP\\\\alice,CORP\\\\bob",
-        })
+        ctx = FakeContext(
+            commands={
+                "wbinfo --own-domain": "CORP\n",
+                "wbinfo -u": "CORP\\\\alice\nCORP\\\\bob\n",
+                "wbinfo --group-info Domain Admins": "Domain Admins:x:10512:CORP\\\\alice,CORP\\\\bob",
+            }
+        )
         data = entitlements.collect(ctx=ctx, include_ad=True)
         ad = data["active_directory"]
         assert ad["joined"] is True
@@ -378,23 +391,43 @@ class TestNetworkCollector:
 # storage collector
 # ---------------------------------------------------------------------------
 
-LSBLK_LUKS = json.dumps({
-    "blockdevices": [
-        {"name": "sda", "type": "disk", "fstype": None, "mountpoint": None, "children": [
-            {"name": "sda1", "type": "part", "fstype": "crypto_LUKS", "mountpoint": None, "children": [
-                {"name": "dm-0", "type": "crypt", "fstype": "ext4", "mountpoint": "/"}
-            ]}
-        ]}
-    ]
-})
+LSBLK_LUKS = json.dumps(
+    {
+        "blockdevices": [
+            {
+                "name": "sda",
+                "type": "disk",
+                "fstype": None,
+                "mountpoint": None,
+                "children": [
+                    {
+                        "name": "sda1",
+                        "type": "part",
+                        "fstype": "crypto_LUKS",
+                        "mountpoint": None,
+                        "children": [
+                            {"name": "dm-0", "type": "crypt", "fstype": "ext4", "mountpoint": "/"}
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+)
 
-LSBLK_PLAIN = json.dumps({
-    "blockdevices": [
-        {"name": "sda", "type": "disk", "fstype": None, "mountpoint": None, "children": [
-            {"name": "sda1", "type": "part", "fstype": "ext4", "mountpoint": "/"}
-        ]}
-    ]
-})
+LSBLK_PLAIN = json.dumps(
+    {
+        "blockdevices": [
+            {
+                "name": "sda",
+                "type": "disk",
+                "fstype": None,
+                "mountpoint": None,
+                "children": [{"name": "sda1", "type": "part", "fstype": "ext4", "mountpoint": "/"}],
+            }
+        ]
+    }
+)
 
 CRYPTTAB = "luks-abc /dev/sda1 none luks\n"
 
@@ -432,13 +465,15 @@ ANSIBLE_LOG = """\
 2024-01-15 10:01:05,123 ok: [host1]
 """
 
-TERRAFORM_STATE = json.dumps({
-    "version": 4,
-    "terraform_version": "1.5.0",
-    "serial": 42,
-    "lineage": "abc-123",
-    "resources": [],
-})
+TERRAFORM_STATE = json.dumps(
+    {
+        "version": 4,
+        "terraform_version": "1.5.0",
+        "serial": 42,
+        "lineage": "abc-123",
+        "resources": [],
+    }
+)
 
 GIT_LOG_OUTPUT = "deadbeef|deploy@example.com|2024-01-15 10:00:00 +0000|Apply config changes"
 
@@ -647,6 +682,7 @@ class TestPatchingCollector:
 # package.py — AuditPackage serialization
 # ---------------------------------------------------------------------------
 
+
 class TestAuditPackage:
     def _pkg(self):
         return AuditPackage(
@@ -699,6 +735,7 @@ class TestAuditPackage:
 # drift.py
 # ---------------------------------------------------------------------------
 
+
 class TestDrift:
     def _pkg(self, controls):
         return AuditPackage(frameworks=["fedramp"], controls=controls)
@@ -726,31 +763,39 @@ class TestDrift:
 
     def test_new_controls_tracked(self):
         baseline = self._pkg([ControlResult("AC-2", "Account Mgmt", "pass")])
-        current = self._pkg([
-            ControlResult("AC-2", "Account Mgmt", "pass"),
-            ControlResult("IA-5", "Auth Mgmt", "pass"),
-        ])
+        current = self._pkg(
+            [
+                ControlResult("AC-2", "Account Mgmt", "pass"),
+                ControlResult("IA-5", "Auth Mgmt", "pass"),
+            ]
+        )
         report = compare_packages(baseline, current)
         assert "IA-5" in report.new_controls
 
     def test_removed_controls_tracked(self):
-        baseline = self._pkg([
-            ControlResult("AC-2", "Account Mgmt", "pass"),
-            ControlResult("IA-5", "Auth Mgmt", "pass"),
-        ])
+        baseline = self._pkg(
+            [
+                ControlResult("AC-2", "Account Mgmt", "pass"),
+                ControlResult("IA-5", "Auth Mgmt", "pass"),
+            ]
+        )
         current = self._pkg([ControlResult("AC-2", "Account Mgmt", "pass")])
         report = compare_packages(baseline, current)
         assert "IA-5" in report.removed_controls
 
     def test_regressions_sort_first(self):
-        baseline = self._pkg([
-            ControlResult("AC-2", "Account Mgmt", "pass"),
-            ControlResult("IA-2", "MFA", "fail"),
-        ])
-        current = self._pkg([
-            ControlResult("AC-2", "Account Mgmt", "fail"),  # regression
-            ControlResult("IA-2", "MFA", "pass"),           # resolution
-        ])
+        baseline = self._pkg(
+            [
+                ControlResult("AC-2", "Account Mgmt", "pass"),
+                ControlResult("IA-2", "MFA", "fail"),
+            ]
+        )
+        current = self._pkg(
+            [
+                ControlResult("AC-2", "Account Mgmt", "fail"),  # regression
+                ControlResult("IA-2", "MFA", "pass"),  # resolution
+            ]
+        )
         report = compare_packages(baseline, current)
         # Regressions first
         assert report.control_drifts[0].regressed
@@ -768,6 +813,7 @@ class TestDrift:
 # ---------------------------------------------------------------------------
 # builder.py — control evaluators via build_package with fake context
 # ---------------------------------------------------------------------------
+
 
 def _make_full_ctx():
     """Fake context representing a well-hardened system."""
@@ -809,6 +855,7 @@ class TestBuilder:
         # Patch collectors to use our fake context
         from adsyslib.compliance import builder as b
         from adsyslib.compliance.controls import FRAMEWORK_CONTROLS
+
         ctx = _make_full_ctx()
 
         import adsyslib.compliance.collectors.admin as _admin
@@ -849,6 +896,7 @@ class TestBuilder:
 
     def test_ac17_root_login_no_passes(self):
         from adsyslib.compliance import builder as b
+
         data = auth.collect(ctx=_make_full_ctx())
         results = b._auth_controls(data)
         ac17 = next(c for c in results if c.id == "AC-17")
@@ -856,6 +904,7 @@ class TestBuilder:
 
     def test_ia2_mfa_passes(self):
         from adsyslib.compliance import builder as b
+
         data = auth.collect(ctx=_make_full_ctx())
         results = b._auth_controls(data)
         ia2 = next(c for c in results if c.id == "IA-2")
@@ -863,6 +912,7 @@ class TestBuilder:
 
     def test_ia8_pubkey_passes(self):
         from adsyslib.compliance import builder as b
+
         data = auth.collect(ctx=_make_full_ctx())
         results = b._auth_controls(data)
         ia8 = next(c for c in results if c.id == "IA-8")
@@ -870,10 +920,13 @@ class TestBuilder:
 
     def test_ia8_password_only_fails(self):
         from adsyslib.compliance import builder as b
-        ctx = FakeContext(files={
-            "/etc/ssh/sshd_config": "PasswordAuthentication yes\nPubkeyAuthentication no\n",
-            "/etc/login.defs": "PASS_MAX_DAYS 90\n",
-        })
+
+        ctx = FakeContext(
+            files={
+                "/etc/ssh/sshd_config": "PasswordAuthentication yes\nPubkeyAuthentication no\n",
+                "/etc/login.defs": "PASS_MAX_DAYS 90\n",
+            }
+        )
         data = auth.collect(ctx=ctx)
         results = b._auth_controls(data)
         ia8 = next(c for c in results if c.id == "IA-8")
@@ -881,6 +934,7 @@ class TestBuilder:
 
     def test_ac6_extra_uid0_fails(self):
         from adsyslib.compliance import builder as b
+
         ctx = FakeContext(commands={"getent passwd": PASSWD_EXTRA_UID0})
         data = admin.collect(ctx=ctx)
         results = b._admin_controls(data)
@@ -889,6 +943,7 @@ class TestBuilder:
 
     def test_sc28_encryption_passes(self):
         from adsyslib.compliance import builder as b
+
         ctx = FakeContext(commands={"lsblk -o NAME,TYPE,FSTYPE,MOUNTPOINT --json": LSBLK_LUKS})
         data = storage.collect(ctx=ctx)
         results = b._storage_controls(data)
@@ -897,10 +952,13 @@ class TestBuilder:
 
     def test_si2_pending_updates_fails(self):
         from adsyslib.compliance import builder as b
-        ctx = FakeContext(commands={
-            "which apt-get": "/usr/bin/apt-get",
-            "apt-get --simulate upgrade": APT_OUTPUT_PENDING,
-        })
+
+        ctx = FakeContext(
+            commands={
+                "which apt-get": "/usr/bin/apt-get",
+                "apt-get --simulate upgrade": APT_OUTPUT_PENDING,
+            }
+        )
         data = patching.collect(ctx=ctx)
         results = b._patching_controls(data)
         si2 = next(c for c in results if c.id == "SI-2")
@@ -910,6 +968,7 @@ class TestBuilder:
 # ---------------------------------------------------------------------------
 # ERS schema validation
 # ---------------------------------------------------------------------------
+
 
 class TestAuditPackageValidation:
     def _valid_package(self):
@@ -989,7 +1048,12 @@ class TestAuditPackageValidation:
             pkg = AuditPackage(
                 frameworks=[fw],
                 controls=[
-                    ControlResult(id="AC-2", title="Account Management", status="pass", framework="nist-800-53")
+                    ControlResult(
+                        id="AC-2",
+                        title="Account Management",
+                        status="pass",
+                        framework="nist-800-53",
+                    )
                 ],
             )
             assert pkg.validate() == [], f"Framework {fw!r} should be valid"

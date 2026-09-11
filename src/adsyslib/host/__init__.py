@@ -37,6 +37,7 @@ Quick start:
     fleet.print_summary()
     fleet.save("fleet_report.json")
 """
+
 from typing import Optional
 
 from .docker_shell import DockerShell
@@ -61,6 +62,7 @@ def ssh_to_host(
     key_file: Optional[str] = None,
     password: Optional[str] = None,
     timeout: float = 30.0,
+    known_hosts: Optional[str] = None,
 ) -> HostSession:
     """
     Create a HostSession over SSH.
@@ -70,8 +72,13 @@ def ssh_to_host(
             report = host.scan_all()
     """
     return HostSession(
-        host=host, user=user, port=port,
-        key_file=key_file, password=password, timeout=timeout,
+        host=host,
+        user=user,
+        port=port,
+        key_file=key_file,
+        password=password,
+        timeout=timeout,
+        known_hosts=known_hosts,
     )
 
 
@@ -112,8 +119,11 @@ def kube_pod(
         kubectl_cmd: Path to kubectl binary.
     """
     shell = KubeShell(
-        pod=pod, namespace=namespace, container=container,
-        context=context, kubectl_cmd=kubectl_cmd,
+        pod=pod,
+        namespace=namespace,
+        container=container,
+        context=context,
+        kubectl_cmd=kubectl_cmd,
     )
     return HostSession._from_shell(shell, label=f"k8s:{namespace}/{pod}")
 

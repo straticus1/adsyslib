@@ -2,6 +2,7 @@
 Keycloak to Authentik migration utilities.
 Helps migrate users, groups, and applications from Keycloak to Authentik.
 """
+
 import logging
 from typing import Any, Optional
 
@@ -73,9 +74,7 @@ class KeycloakToAuthentikMigrator:
                     existing = self.authentik.list_groups(search=group_name)
                     if existing and any(g["name"] == group_name for g in existing):
                         logger.info(f"Group already exists: {group_name}")
-                        group_id = next(
-                            g["pk"] for g in existing if g["name"] == group_name
-                        )
+                        group_id = next(g["pk"] for g in existing if g["name"] == group_name)
                         group_mapping[group_name] = group_id
                     else:
                         # Create new group
@@ -125,7 +124,10 @@ class KeycloakToAuthentikMigrator:
 
             try:
                 # Build Authentik user data
-                name = f"{kc_user.get('firstName', '')} {kc_user.get('lastName', '')}".strip() or username
+                name = (
+                    f"{kc_user.get('firstName', '')} {kc_user.get('lastName', '')}".strip()
+                    or username
+                )
                 email = kc_user.get("email")
 
                 # Map groups
@@ -151,9 +153,7 @@ class KeycloakToAuthentikMigrator:
                     existing = self.authentik.list_users(search=username)
                     if existing and any(u["username"] == username for u in existing):
                         logger.info(f"User already exists: {username}")
-                        user_id = next(
-                            u["pk"] for u in existing if u["username"] == username
-                        )
+                        user_id = next(u["pk"] for u in existing if u["username"] == username)
                         results.append(
                             {
                                 "username": username,
@@ -177,14 +177,10 @@ class KeycloakToAuthentikMigrator:
                         # Set password if provided
                         if self.default_password:
                             try:
-                                self.authentik.set_user_password(
-                                    user_id, self.default_password
-                                )
+                                self.authentik.set_user_password(user_id, self.default_password)
                                 logger.debug(f"Set default password for {username}")
                             except Exception as e:
-                                logger.warning(
-                                    f"Failed to set password for {username}: {e}"
-                                )
+                                logger.warning(f"Failed to set password for {username}: {e}")
 
                         results.append(
                             {
@@ -245,7 +241,9 @@ class KeycloakToAuthentikMigrator:
         if report["errors"]:
             logger.warning("\nErrors encountered:")
             for error in report["errors"][:10]:  # Show first 10
-                logger.warning(f"  - {error['type']}: {error.get('name', error.get('username'))} - {error['error']}")
+                logger.warning(
+                    f"  - {error['type']}: {error.get('name', error.get('username'))} - {error['error']}"
+                )
 
         logger.info("=" * 60)
 

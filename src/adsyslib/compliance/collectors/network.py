@@ -2,6 +2,7 @@
 Network security collector — TLS and cipher enforcement evidence.
 Maps to controls: SC-8.
 """
+
 import logging
 import re
 from typing import Any, Optional
@@ -11,20 +12,35 @@ from adsyslib.protocols import ShellProtocol
 
 logger = logging.getLogger(__name__)
 
-WEAK_CIPHERS = frozenset([
-    "3des-cbc", "arcfour", "arcfour128", "arcfour256",
-    "blowfish-cbc", "cast128-cbc",
-    "aes128-cbc", "aes192-cbc", "aes256-cbc",
-])
-WEAK_MACS = frozenset([
-    "hmac-md5", "hmac-md5-96", "hmac-sha1", "hmac-sha1-96",
-    "umac-64@openssh.com",
-])
-WEAK_KEX = frozenset([
-    "diffie-hellman-group1-sha1",
-    "diffie-hellman-group14-sha1",
-    "diffie-hellman-group-exchange-sha1",
-])
+WEAK_CIPHERS = frozenset(
+    [
+        "3des-cbc",
+        "arcfour",
+        "arcfour128",
+        "arcfour256",
+        "blowfish-cbc",
+        "cast128-cbc",
+        "aes128-cbc",
+        "aes192-cbc",
+        "aes256-cbc",
+    ]
+)
+WEAK_MACS = frozenset(
+    [
+        "hmac-md5",
+        "hmac-md5-96",
+        "hmac-sha1",
+        "hmac-sha1-96",
+        "umac-64@openssh.com",
+    ]
+)
+WEAK_KEX = frozenset(
+    [
+        "diffie-hellman-group1-sha1",
+        "diffie-hellman-group14-sha1",
+        "diffie-hellman-group-exchange-sha1",
+    ]
+)
 
 
 def _sshd_crypto(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> dict[str, Any]:
@@ -63,11 +79,13 @@ def _tls_services(ctx: ShellProtocol) -> list[dict[str, Any]]:
     if result.ok():
         protocols = re.findall(r"ssl_protocols\s+([^;]+);", result.stdout)
         ciphers = re.findall(r"ssl_ciphers\s+([^;]+);", result.stdout)
-        services.append({
-            "service": "nginx",
-            "ssl_protocols": [p.strip() for p in protocols],
-            "ssl_ciphers": [c.strip() for c in ciphers],
-        })
+        services.append(
+            {
+                "service": "nginx",
+                "ssl_protocols": [p.strip() for p in protocols],
+                "ssl_ciphers": [c.strip() for c in ciphers],
+            }
+        )
 
     result = ctx.run(["apachectl", "-M"], check=False)
     if result.ok() and "ssl_module" in result.stdout:

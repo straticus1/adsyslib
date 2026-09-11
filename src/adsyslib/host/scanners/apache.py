@@ -2,6 +2,7 @@
 Apache scanner — service status, config test, modules, TLS config.
 Works with both apache2 (Debian/Ubuntu) and httpd (RHEL/CentOS).
 """
+
 import re
 from typing import Any
 
@@ -91,8 +92,12 @@ class ApacheScanner(ServiceScanner):
         }
 
     def _check_issues(
-        self, active: bool, conf_ok: bool, conf_errors: list[str],
-        modules: list[str], tls: dict,
+        self,
+        active: bool,
+        conf_ok: bool,
+        conf_errors: list[str],
+        modules: list[str],
+        tls: dict,
     ) -> list[str]:
         issues = []
         if not active:

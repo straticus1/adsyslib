@@ -1,6 +1,7 @@
 """
 Dovecot scanner — IMAP/POP3 status, protocols, SSL config, auth mechanisms.
 """
+
 from typing import Any
 
 from .base import ScanResult, ServiceScanner
@@ -40,9 +41,16 @@ class DovecotScanner(ServiceScanner):
                 conf[k.strip()] = v.strip()
 
         keys = [
-            "protocols", "ssl", "ssl_cert", "ssl_key", "ssl_min_protocol",
-            "ssl_cipher_list", "auth_mechanisms", "disable_plaintext_auth",
-            "mail_location", "first_valid_uid",
+            "protocols",
+            "ssl",
+            "ssl_cert",
+            "ssl_key",
+            "ssl_min_protocol",
+            "ssl_cipher_list",
+            "auth_mechanisms",
+            "disable_plaintext_auth",
+            "mail_location",
+            "first_valid_uid",
         ]
         return {k: conf[k] for k in keys if k in conf}
 

@@ -1,6 +1,7 @@
 """
 Tests for core shell execution functionality.
 """
+
 import os
 import subprocess
 

@@ -8,10 +8,13 @@ Usage:
     report.save("drift.json")
     print(report.summary())
 """
+
 import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+
+from adsyslib.files import write_private
 
 from .package import AuditPackage, ControlResult
 
@@ -51,9 +54,7 @@ class DriftReport:
     control_drifts: list[ControlDrift] = field(default_factory=list)
     new_controls: list[str] = field(default_factory=list)
     removed_controls: list[str] = field(default_factory=list)
-    generated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     @property
     def regressions(self) -> list[ControlDrift]:
@@ -85,8 +86,7 @@ class DriftReport:
         return json.dumps(self.to_dict(), indent=indent, default=str)
 
     def save(self, path: str) -> None:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(self.to_json())
+        write_private(path, self.to_json())
 
 
 def compare_packages(baseline: AuditPackage, current: AuditPackage) -> DriftReport:
@@ -106,14 +106,16 @@ def compare_packages(baseline: AuditPackage, current: AuditPackage) -> DriftRepo
     for ctrl_id in sorted(baseline_ids & current_ids):
         b = baseline_map[ctrl_id]
         c = current_map[ctrl_id]
-        drifts.append(ControlDrift(
-            control_id=ctrl_id,
-            control_title=b.title,
-            baseline_status=b.status,
-            current_status=c.status,
-            baseline_evidence=b.evidence,
-            current_evidence=c.evidence,
-        ))
+        drifts.append(
+            ControlDrift(
+                control_id=ctrl_id,
+                control_title=b.title,
+                baseline_status=b.status,
+                current_status=c.status,
+                baseline_evidence=b.evidence,
+                current_evidence=c.evidence,
+            )
+        )
 
     # Regressions first, then resolutions, then unchanged — all sorted by ID within group
     drifts.sort(key=lambda d: (0 if d.regressed else 1 if d.resolved else 2, d.control_id))

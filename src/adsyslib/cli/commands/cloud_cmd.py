@@ -9,18 +9,22 @@ from adsyslib.cloud import CloudProvider, get_cloud_provider
 app = typer.Typer()
 console = Console()
 
-def get_provider(provider_type: str, profile: Optional[str] = None, region: Optional[str] = None) -> CloudProvider:
+
+def get_provider(
+    provider_type: str, profile: Optional[str] = None, region: Optional[str] = None
+) -> CloudProvider:
     try:
         return get_cloud_provider(provider_type, profile=profile, region=region)
     except ValueError as e:
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(1) from e
 
+
 @app.command("list-instances")
 def list_instances(
     provider: str = typer.Option(..., help="Cloud provider: aws or oracle"),
     region: Optional[str] = typer.Option(None, help="Region to list instances in"),
-    profile: Optional[str] = typer.Option(None, help="Cloud profile name")
+    profile: Optional[str] = typer.Option(None, help="Cloud profile name"),
 ) -> None:
     """List compute instances."""
     cp = get_provider(provider, profile)
@@ -31,25 +35,26 @@ def list_instances(
         table.add_column("State", style="green")
         table.add_column("Type/Shape")
         table.add_column("Public IP")
-        
+
         for inst in instances:
             table.add_row(
                 inst.get("id"),
                 inst.get("state"),
                 inst.get("type") or inst.get("shape"),
-                inst.get("public_ip") or "N/A"
+                inst.get("public_ip") or "N/A",
             )
         console.print(table)
     except Exception as e:
         console.print(f"[bold red]Error listing instances:[/bold red] {e}")
         raise typer.Exit(1) from e
 
+
 @app.command("upload")
 def upload_file(
     provider: str = typer.Option(..., help="Cloud provider: aws or oracle"),
     bucket: str = typer.Argument(..., help="Target bucket name"),
     file: str = typer.Argument(..., help="Local file path"),
-    profile: Optional[str] = typer.Option(None, help="Cloud profile name")
+    profile: Optional[str] = typer.Option(None, help="Cloud profile name"),
 ) -> None:
     """Upload file to object storage."""
     cp = get_provider(provider, profile)

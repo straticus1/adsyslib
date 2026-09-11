@@ -7,18 +7,23 @@ from adsyslib.core import CommandResult, ShellError, run
 
 logger = logging.getLogger(__name__)
 
+
 class TerraformRunner:
     """
     Wrapper for Terraform CLI.
     Enables running plan/apply and parsing output.
     """
-    def __init__(self, working_dir: str = "."):
+
+    def __init__(self, working_dir: str = ".", timeout: Optional[float] = None):
         self.working_dir = working_dir
+        self.timeout = timeout
 
     def _run_tf(self, args: list, env: Optional[dict[str, str]] = None) -> CommandResult:
         cmd = ["terraform"] + args
         try:
-            return run(cmd, cwd=self.working_dir, env=env, check=True)
+            return run(
+                cmd, cwd=self.working_dir, env=env, check=True, timeout=self.timeout, sensitive=True
+            )
         except ShellError as e:
             logger.error(f"Terraform command failed: {e}")
             raise
@@ -31,7 +36,12 @@ class TerraformRunner:
                 args.append(f"-backend-config={k}={v}")
         self._run_tf(args)
 
-    def plan(self, var_file: Optional[str] = None, vars: Optional[dict[str, str]] = None, out: Optional[str] = None) -> str:
+    def plan(
+        self,
+        var_file: Optional[str] = None,
+        vars: Optional[dict[str, str]] = None,
+        out: Optional[str] = None,
+    ) -> str:
         """Run terraform plan. Returns stdout."""
         args = ["plan", "-input=false", "-no-color"]
         if var_file:
@@ -41,16 +51,18 @@ class TerraformRunner:
                 args.append(f"-var={k}={v}")
         if out:
             args.append(f"-out={out}")
-        
+
         return self._run_tf(args).stdout
 
-    def apply(self, plan_file: Optional[str] = None, auto_approve: bool = True) -> None:
+    def apply(self, plan_file: Optional[str] = None, auto_approve: bool = False) -> None:
+        if not plan_file and not auto_approve:
+            raise ValueError("apply requires a saved plan_file or explicit auto_approve=True")
         args = ["apply", "-input=false", "-no-color"]
         if auto_approve:
             args.append("-auto-approve")
         if plan_file:
             args.append(plan_file)
-        
+
         self._run_tf(args)
 
     def output(self, json_format: bool = True) -> dict[str, Any]:
@@ -58,11 +70,12 @@ class TerraformRunner:
         args = ["output"]
         if json_format:
             args.append("-json")
-        
+
         res = self._run_tf(args)
         if json_format:
             return json.loads(res.stdout)
         return {"raw": res.stdout}
+
 
 def external_data_handler(handler_func: Callable[[Any], Any]) -> None:
     """

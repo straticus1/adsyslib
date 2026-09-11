@@ -1,6 +1,7 @@
 """
 DNS scanner — BIND/named status, config check, zone count, rndc status.
 """
+
 import re
 from typing import Any, Optional
 
@@ -68,7 +69,11 @@ class DnsScanner(ServiceScanner):
     def _check_conf(self) -> tuple[bool, list[str]]:
         r = self._run(["named-checkconf"])
         ok = r.exit_code == 0
-        errors = [ln.strip() for ln in (r.stdout + r.stderr).splitlines() if ln.strip()] if not ok else []
+        errors = (
+            [ln.strip() for ln in (r.stdout + r.stderr).splitlines() if ln.strip()]
+            if not ok
+            else []
+        )
         return ok, errors
 
     def _zone_count(self) -> int:
@@ -96,8 +101,12 @@ class DnsScanner(ServiceScanner):
         return data
 
     def _check_issues(
-        self, active: bool, conf_ok: bool, conf_errors: list[str],
-        config: dict, rndc: dict,
+        self,
+        active: bool,
+        conf_ok: bool,
+        conf_errors: list[str],
+        config: dict,
+        rndc: dict,
     ) -> list[str]:
         issues = []
         if not active:

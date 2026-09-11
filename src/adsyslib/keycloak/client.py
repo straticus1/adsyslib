@@ -2,10 +2,14 @@
 Keycloak Identity Provider Client.
 Basic client for extracting data from Keycloak for migration purposes.
 """
+
 import logging
 from typing import Any, Optional
+from urllib.parse import quote
 
 import requests
+
+from adsyslib.http import APIError, request, validate_url
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +28,8 @@ class KeycloakClient:
         username: Optional[str] = None,
         password: Optional[str] = None,
         verify_ssl: bool = True,
+        timeout: float = 30.0,
+        auth_realm: str = "master",
     ):
         """
         Initialize Keycloak client.
@@ -36,7 +42,11 @@ class KeycloakClient:
             password: Admin password
             verify_ssl: Whether to verify SSL certificates
         """
-        self.base_url = base_url.rstrip("/")
+        if timeout <= 0:
+            raise ValueError("timeout must be positive")
+        self.timeout = timeout
+        self.auth_realm = auth_realm
+        self.base_url = validate_url(base_url)
         self.realm = realm
         self.client_id = client_id
         self.username = username
@@ -51,7 +61,7 @@ class KeycloakClient:
 
     def _authenticate(self) -> None:
         """Authenticate and get access token."""
-        url = f"{self.base_url}/realms/master/protocol/openid-connect/token"
+        url = f"{self.base_url}/realms/{quote(self.auth_realm, safe='')}/protocol/openid-connect/token"
         data = {
             "client_id": self.client_id,
             "username": self.username,
@@ -60,26 +70,47 @@ class KeycloakClient:
         }
 
         logger.debug("Authenticating to Keycloak")
-        response = requests.post(url, data=data, verify=self.verify_ssl)
-        response.raise_for_status()
-
-        self.token = response.json()["access_token"]
+        data = request(self.session, "POST", url, self.timeout, data=data)
+        if not data.get("access_token"):
+            raise APIError("Authentication response has no access token")
+        self.token = data["access_token"]
         self.session.headers.update({"Authorization": f"Bearer {self.token}"})
 
     def _request(self, method: str, endpoint: str, **kwargs: Any) -> Any:
         """Make an authenticated API request."""
-        url = f"{self.base_url}/admin/realms/{self.realm}/{endpoint.lstrip('/')}"
+        url = f"{self.base_url}/admin/realms/{quote(self.realm, safe='')}/{endpoint.lstrip('/')}"
         logger.debug(f"Keycloak API: {method} {url}")
 
-        response = self.session.request(method, url, **kwargs)
-        response.raise_for_status()
+        return request(self.session, method, url, self.timeout, **kwargs)
 
-        if response.content:
-            try:
-                return response.json()
-            except ValueError:
-                return response.text
-        return None
+    def close(self) -> None:
+        self.session.close()
+
+    def __enter__(self) -> "KeycloakClient":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+    def iter_users(self, page_size: int = 100) -> Any:
+        """Yield users page by page without truncating realm exports."""
+        if page_size <= 0:
+            raise ValueError("page_size must be positive")
+        offset = 0
+        seen = set()
+        while True:
+            users = self._request("GET", "users", params={"first": offset, "max": page_size})
+            if not isinstance(users, list):
+                raise APIError("Invalid user page")
+            if not users:
+                return
+            for user in users:
+                identity = user.get("id")
+                if not identity or identity in seen:
+                    raise APIError("User pagination returned a missing or repeated ID")
+                seen.add(identity)
+                yield user
+            offset += len(users)
 
     # ==================== REALM OPERATIONS ====================
 
@@ -91,9 +122,7 @@ class KeycloakClient:
         """List all realms (requires master realm access)."""
         url = f"{self.base_url}/admin/realms"
         self.session.headers.update({"Authorization": f"Bearer {self.token}"})
-        response = self.session.get(url)
-        response.raise_for_status()
-        return response.json()
+        return request(self.session, "GET", url, self.timeout)
 
     # ==================== USER OPERATIONS ====================
 
@@ -110,6 +139,8 @@ class KeycloakClient:
         Returns:
             List of user dictionaries
         """
+        if max_results <= 0:
+            raise ValueError("max_results must be positive")
         params: dict[str, Any] = {"max": max_results}
         if search:
             params["search"] = search
@@ -201,7 +232,7 @@ class KeycloakClient:
         }
 
         # Export all users with their details
-        users = self.list_users(max_results=10000)
+        users = self.iter_users()
         for user in users:
             user_id = user["id"]
             user_full = {
@@ -227,7 +258,7 @@ class KeycloakClient:
         Returns:
             List of user dictionaries with migration-ready fields
         """
-        users = self.list_users(max_results=10000)
+        users = self.iter_users()
         minimal_users = []
 
         for user in users:

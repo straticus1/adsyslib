@@ -1,6 +1,7 @@
 """
 SpamAssassin scanner — spamd status, version, rule freshness, bayes status.
 """
+
 import re
 from typing import Any
 
@@ -34,11 +35,15 @@ class SpamassassinScanner(ServiceScanner):
                 # If recent .cf files exist, rules are fresh
                 return 0 if r.stdout.strip() else 8
         # Fallback: check sa-update timestamp file
-        for ts_path in ("/var/lib/spamassassin/sa-update-running", "/var/cache/spamassassin/sa-update-running"):
+        for ts_path in (
+            "/var/lib/spamassassin/sa-update-running",
+            "/var/cache/spamassassin/sa-update-running",
+        ):
             r = self._run(["stat", "-c", "%Y", ts_path])
             if r.ok() and r.stdout.strip():
                 try:
                     import time
+
                     mtime = int(r.stdout.strip())
                     return max(0, int((time.time() - mtime) / 86400))
                 except ValueError:

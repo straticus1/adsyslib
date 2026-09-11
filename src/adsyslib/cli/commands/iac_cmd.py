@@ -9,10 +9,11 @@ from adsyslib.iac.terraform import TerraformRunner
 app = typer.Typer()
 console = Console()
 
+
 @app.command("tf-plan")
 def tf_plan(
     dir: str = typer.Option(".", help="Terraform working directory"),
-    out: Optional[str] = typer.Option(None, help="Output plan file")
+    out: Optional[str] = typer.Option(None, help="Output plan file"),
 ) -> None:
     """Run terraform plan."""
     tf = TerraformRunner(dir)
@@ -24,26 +25,31 @@ def tf_plan(
         console.print(f"[bold red]Plan failed:[/bold red] {e}")
         raise typer.Exit(1) from e
 
+
 @app.command("tf-apply")
 def tf_apply(
     dir: str = typer.Option(".", help="Terraform working directory"),
-    plan: Optional[str] = typer.Option(None, help="Plan file to apply")
+    plan: Optional[str] = typer.Option(None, help="Plan file to apply"),
+    auto_approve: bool = typer.Option(
+        False, help="Explicitly approve applying without a saved plan"
+    ),
 ) -> None:
     """Run terraform apply."""
     tf = TerraformRunner(dir)
     try:
         console.print("[bold blue]Running Terraform Apply...[/bold blue]")
-        tf.apply(plan_file=plan)
+        tf.apply(plan_file=plan, auto_approve=auto_approve)
         console.print("[bold green]Apply successful[/bold green]")
     except Exception as e:
         console.print(f"[bold red]Apply failed:[/bold red] {e}")
         raise typer.Exit(1) from e
 
+
 @app.command("ansible-run")
 def ansible_run(
     playbook: str = typer.Argument(..., help="Path to playbook"),
     inventory: Optional[str] = typer.Option(None, help="Inventory file"),
-    check: bool = typer.Option(False, help="Check mode (dry run)")
+    check: bool = typer.Option(False, help="Check mode (dry run)"),
 ) -> None:
     """Run ansible playbook."""
     runner = AnsibleRunner(inventory=inventory)

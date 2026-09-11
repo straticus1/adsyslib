@@ -2,6 +2,7 @@
 Auth collector — authentication configuration evidence.
 Maps to controls: IA-2, IA-5, AC-17.
 """
+
 import logging
 from typing import Any, Optional
 

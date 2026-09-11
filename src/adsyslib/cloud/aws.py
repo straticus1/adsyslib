@@ -11,16 +11,15 @@ from adsyslib.cloud.base import CloudProvider
 
 logger = logging.getLogger(__name__)
 
+
 class AWSProvider(CloudProvider):
     """
     AWS Implementation using boto3.
     """
+
     def __init__(self, region_name: Optional[str] = None, profile_name: Optional[str] = None):
         if boto3 is None:
-            raise ImportError(
-                "boto3 is required for AWSProvider:\n"
-                "  pip install 'adsyslib[cloud]'"
-            )
+            raise ImportError("boto3 is required for AWSProvider:\n  pip install 'adsyslib[cloud]'")
         self.session = boto3.Session(region_name=region_name, profile_name=profile_name)
         self.ec2 = self.session.client("ec2")
         self.s3 = self.session.client("s3")
@@ -30,19 +29,21 @@ class AWSProvider(CloudProvider):
         client = self.ec2
         if region:
             client = self.session.client("ec2", region_name=region)
-        
-        response = client.describe_instances()
+
         instances = []
-        for reservation in response.get("Reservations", []):
-            for inst in reservation.get("Instances", []):
-                instances.append({
-                    "id": inst["InstanceId"],
-                    "state": inst["State"]["Name"],
-                    "type": inst["InstanceType"],
-                    "public_ip": inst.get("PublicIpAddress"),
-                    "private_ip": inst.get("PrivateIpAddress"),
-                    "tags": inst.get("Tags", [])
-                })
+        for response in client.get_paginator("describe_instances").paginate():
+            for reservation in response.get("Reservations", []):
+                for inst in reservation.get("Instances", []):
+                    instances.append(
+                        {
+                            "id": inst["InstanceId"],
+                            "state": inst["State"]["Name"],
+                            "type": inst["InstanceType"],
+                            "public_ip": inst.get("PublicIpAddress"),
+                            "private_ip": inst.get("PrivateIpAddress"),
+                            "tags": inst.get("Tags", []),
+                        }
+                    )
         return instances
 
     def start_instance(self, instance_id: str) -> None:

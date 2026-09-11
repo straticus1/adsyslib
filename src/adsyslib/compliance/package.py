@@ -7,8 +7,11 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from adsyslib.files import write_private
+
 try:
     import yaml
+
     HAS_YAML = True
 except ImportError:
     HAS_YAML = False
@@ -37,9 +40,7 @@ class AuditPackage:
     patching: dict[str, Any] = field(default_factory=dict)
     controls: list[ControlResult] = field(default_factory=list)
     package_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    generated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     hostname: str = field(default_factory=socket.getfqdn)
 
     def to_dict(self) -> dict[str, Any]:
@@ -51,20 +52,27 @@ class AuditPackage:
     def to_yaml(self) -> str:
         if not HAS_YAML:
             raise ImportError("pyyaml is required: pip install pyyaml")
-        return yaml.dump(self.to_dict(), default_flow_style=False, allow_unicode=True)
+        return yaml.safe_dump(self.to_dict(), default_flow_style=False, allow_unicode=True)
 
     def to_csv(self) -> str:
         """Flatten controls to one row per control result."""
         buf = io.StringIO()
         fieldnames = [
-            "package_id", "generated_at", "hostname", "frameworks",
-            "control_id", "control_title", "status", "framework", "evidence",
+            "package_id",
+            "generated_at",
+            "hostname",
+            "frameworks",
+            "control_id",
+            "control_title",
+            "status",
+            "framework",
+            "evidence",
         ]
         writer = csv.DictWriter(buf, fieldnames=fieldnames)
         writer.writeheader()
         frameworks_str = "|".join(self.frameworks)
         for ctrl in self.controls:
-            writer.writerow({
+            row = {
                 "package_id": self.package_id,
                 "generated_at": self.generated_at,
                 "hostname": self.hostname,
@@ -74,7 +82,14 @@ class AuditPackage:
                 "status": ctrl.status,
                 "framework": ctrl.framework,
                 "evidence": ctrl.evidence,
-            })
+            }
+            # Spreadsheet software interprets these prefixes as formulas.
+            writer.writerow(
+                {
+                    k: "'" + v if v.lstrip().startswith(("=", "+", "-", "@")) else v
+                    for k, v in row.items()
+                }
+            )
         return buf.getvalue()
 
     def save(self, path: str, fmt: str = "json") -> None:
@@ -87,8 +102,7 @@ class AuditPackage:
             content = self.to_csv()
         else:
             raise ValueError(f"Unsupported format '{fmt}'. Use json, yaml, or csv.")
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content)
+        write_private(path, content)
 
     def validate(self) -> list[str]:
         """
@@ -112,8 +126,20 @@ class AuditPackage:
 
         if not self.package_id or not self.package_id.strip():
             errors.append("package_id is empty")
+        else:
+            try:
+                uuid.UUID(self.package_id)
+            except ValueError:
+                errors.append("package_id is not a valid UUID")
         if not self.generated_at or not self.generated_at.strip():
             errors.append("generated_at is empty")
+        else:
+            try:
+                timestamp = datetime.fromisoformat(self.generated_at.replace("Z", "+00:00"))
+                if timestamp.tzinfo is None:
+                    errors.append("generated_at must include a timezone")
+            except ValueError:
+                errors.append("generated_at is not a valid ISO-8601 timestamp")
         if not self.hostname or not self.hostname.strip():
             errors.append("hostname is empty")
         if not self.frameworks:
@@ -124,8 +150,13 @@ class AuditPackage:
                 errors.append(f"unknown framework(s): {sorted(unknown)}")
         if not self.controls:
             errors.append("controls list is empty — package has no evaluated controls")
+        seen = set()
         for i, ctrl in enumerate(self.controls):
             prefix = f"controls[{i}] (id={ctrl.id!r})"
+            identity = (ctrl.framework, ctrl.id)
+            if identity in seen:
+                errors.append(f"{prefix}: duplicate control")
+            seen.add(identity)
             if not ctrl.id or not ctrl.id.strip():
                 errors.append(f"{prefix}: id is empty")
             if not ctrl.title or not ctrl.title.strip():

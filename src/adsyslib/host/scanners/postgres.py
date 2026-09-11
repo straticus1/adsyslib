@@ -1,6 +1,7 @@
 """
 PostgreSQL scanner — service status, version, pg_hba auth methods, SSL config.
 """
+
 import re
 from typing import Any
 
@@ -70,13 +71,15 @@ class PostgresScanner(ServiceScanner):
                     continue
                 parts = line.split()
                 if len(parts) >= 4:
-                    entries.append({
-                        "type": parts[0],
-                        "database": parts[1],
-                        "user": parts[2],
-                        "address": parts[3] if len(parts) > 4 else "",
-                        "method": parts[-1],
-                    })
+                    entries.append(
+                        {
+                            "type": parts[0],
+                            "database": parts[1],
+                            "user": parts[2],
+                            "address": parts[3] if len(parts) > 4 else "",
+                            "method": parts[-1],
+                        }
+                    )
             return entries
         return []
 

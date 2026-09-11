@@ -1,0 +1,3 @@
+include README.md CHANGELOG.md
+include docs/SECURITY.md
+include src/adsyslib/py.typed

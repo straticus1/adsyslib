@@ -5,6 +5,7 @@ High-level interface for managing OAuth2/OIDC providers using Django ORM direct 
 This module provides the same functionality as the custom CLI tool built for AfterDark,
 but packaged as a reusable Python library.
 """
+
 import json
 import logging
 from dataclasses import dataclass
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OAuthProviderConfig:
     """Configuration for an OAuth2 provider."""
+
     app_name: str
     app_slug: str
     client_id: str
@@ -81,34 +83,36 @@ class AuthentikOAuthManager:
                 "kubectl get pods -n authentik -l app=authentik-server -o jsonpath='{.items[0].metadata.name}'",
                 check=True,
                 capture_output=True,
-                text=True
+                text=True,
             )
             pod_name = pod_result.stdout.strip().strip("'")
-            cmd = f"kubectl exec -i -n authentik {pod_name} -- python3"
+            cmd = ["kubectl", "exec", "-i", "-n", "authentik", pod_name, "--", "python3"]
         else:
             # Use docker exec
-            cmd = f"docker exec -i {self.container_name} python3"
+            cmd = ["docker", "exec", "-i", self.container_name, "python3"]
 
         # Pipe script to exec command
         result = run(
             cmd,
             input=script,
+            sensitive=True,
+            timeout=60,
             check=True,
             capture_output=True,
-            text=True
+            text=True,
         )
 
         # Parse JSON from last line
-        lines = result.stdout.strip().split('\n')
+        lines = result.stdout.strip().split("\n")
         for line in reversed(lines):
-            if line.startswith('{') or line.startswith('['):
+            if line.startswith("{") or line.startswith("["):
                 return json.loads(line)
 
         raise ValueError("No JSON output found in script result")
 
     def _generate_create_script(self, config: OAuthProviderConfig) -> str:
         """Generate Python script to create OAuth provider."""
-        return f'''
+        return f"""
 import os, sys, json
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'authentik.root.settings')
 import django
@@ -123,8 +127,8 @@ cert = CertificateKeyPair.objects.filter(name="authentik Self-signed Certificate
 
 # Check if provider exists
 try:
-    provider = OAuth2Provider.objects.get(client_id="{config.client_id}")
-    print(json.dumps({{"error": "Provider already exists", "client_id": "{config.client_id}"}}), file=sys.stderr)
+    provider = OAuth2Provider.objects.get(client_id={config.client_id!r})
+    print(json.dumps({{"error": "Provider already exists", "client_id": {config.client_id!r}}}), file=sys.stderr)
     sys.exit(1)
 except OAuth2Provider.DoesNotExist:
     pass
@@ -134,10 +138,10 @@ redirect_uris = {json.dumps(config.redirect_uris)}
 redirect_uris_data = json.dumps([{{"matching_mode": "strict", "url": uri}} for uri in redirect_uris])
 
 provider = OAuth2Provider.objects.create(
-    name="{config.app_name} Provider",
+    name={config.app_name + " Provider"!r},
     authorization_flow=flow,
-    client_id="{config.client_id}",
-    client_type="{config.client_type}",
+    client_id={config.client_id!r},
+    client_type={config.client_type!r},
     signing_key=cert,
     sub_mode="hashed_user_id",
     include_claims_in_id_token=True,
@@ -149,31 +153,31 @@ provider.save()
 
 # Create or update application
 try:
-    app = Application.objects.get(slug="{config.app_slug}")
+    app = Application.objects.get(slug={config.app_slug!r})
     if app.provider != provider:
         app.provider = provider
         app.save()
 except Application.DoesNotExist:
     app = Application.objects.create(
-        name="{config.app_name}",
-        slug="{config.app_slug}",
+        name={config.app_name!r},
+        slug={config.app_slug!r},
         provider=provider,
-        meta_launch_url="{config.launch_url}"
+        meta_launch_url={config.launch_url!r}
     )
 
 # Output result
 result = {{
-    "app_name": "{config.app_name}",
-    "app_slug": "{config.app_slug}",
-    "client_id": "{config.client_id}",
+    "app_name": {config.app_name!r},
+    "app_slug": {config.app_slug!r},
+    "client_id": {config.client_id!r},
     "client_secret": provider.client_secret,
-    "client_type": "{config.client_type}",
+    "client_type": {config.client_type!r},
     "redirect_uris": {json.dumps(config.redirect_uris)},
-    "launch_url": "{config.launch_url}"
+    "launch_url": {config.launch_url!r}
 }}
 
 print(json.dumps(result))
-'''
+"""
 
     def create_provider(self, config: OAuthProviderConfig) -> dict[str, Any]:
         """
@@ -215,18 +219,18 @@ print(json.dumps(result))
                 results.append(result)
             except Exception as e:
                 logger.error(f"Failed to create {config.client_id}: {e}")
-                results.append({
-                    "error": str(e),
-                    "client_id": config.client_id,
-                    "app_name": config.app_name
-                })
+                results.append(
+                    {"error": str(e), "client_id": config.client_id, "app_name": config.app_name}
+                )
 
-        logger.info(f"✓ Created {len([r for r in results if 'error' not in r])}/{len(configs)} providers")
+        logger.info(
+            f"✓ Created {len([r for r in results if 'error' not in r])}/{len(configs)} providers"
+        )
         return results
 
     def list_providers(self) -> list[dict[str, Any]]:
         """List all OAuth2 providers."""
-        script = '''
+        script = """
 import os, sys, json
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'authentik.root.settings')
 import django
@@ -243,7 +247,7 @@ for p in OAuth2Provider.objects.all():
     })
 
 print(json.dumps(providers))
-'''
+"""
         return self._docker_exec_python(script)
 
     def get_provider(self, client_id: str) -> dict[str, Any]:
@@ -256,7 +260,7 @@ print(json.dumps(providers))
         Returns:
             Provider details including client_secret
         """
-        script = f'''
+        script = f"""
 import os, sys, json
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'authentik.root.settings')
 import django
@@ -264,7 +268,7 @@ django.setup()
 from authentik.providers.oauth2.models import OAuth2Provider
 
 try:
-    p = OAuth2Provider.objects.get(client_id="{client_id}")
+    p = OAuth2Provider.objects.get(client_id={client_id!r})
     result = {{
         "name": p.name,
         "client_id": p.client_id,
@@ -276,7 +280,7 @@ try:
 except OAuth2Provider.DoesNotExist:
     print(json.dumps({{"error": "Provider not found"}}), file=sys.stderr)
     sys.exit(1)
-'''
+"""
         return self._docker_exec_python(script)
 
     def delete_provider(self, client_id: str) -> None:
@@ -288,7 +292,7 @@ except OAuth2Provider.DoesNotExist:
         """
         logger.info(f"Deleting OAuth provider: {client_id}")
 
-        script = f'''
+        script = f"""
 import os, sys, json
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'authentik.root.settings')
 import django
@@ -296,13 +300,13 @@ django.setup()
 from authentik.providers.oauth2.models import OAuth2Provider
 
 try:
-    p = OAuth2Provider.objects.get(client_id="{client_id}")
+    p = OAuth2Provider.objects.get(client_id={client_id!r})
     p.delete()
-    print(json.dumps({{"success": True, "client_id": "{client_id}"}}))
+    print(json.dumps({{"success": True, "client_id": {client_id!r}}}))
 except OAuth2Provider.DoesNotExist:
     print(json.dumps({{"error": "Provider not found"}}), file=sys.stderr)
     sys.exit(1)
-'''
+"""
         self._docker_exec_python(script)
         logger.info(f"✓ Deleted provider {client_id}")
 
@@ -333,7 +337,7 @@ def load_providers_from_json(json_file: str) -> list[OAuthProviderConfig]:
             launch_url=app["launch_url"],
             client_type=app.get("client_type", "confidential"),
             description=app.get("description"),
-            port=app.get("port")
+            port=app.get("port"),
         )
         configs.append(config)
 
@@ -348,15 +352,27 @@ def generate_env_file(results: list[dict[str, Any]], output_file: str = ".env") 
         results: List of provider creation results
         output_file: Output file path
     """
-    with open(output_file, 'a') as f:
-        f.write('\n\n# ====== OAUTH PROVIDERS ======\n')
-        for result in results:
-            if 'error' in result:
-                continue
+    import re
+    import shlex
+    from pathlib import Path
 
-            slug = result['app_slug'].upper().replace('-', '_')
-            f.write(f'\n# {result["app_name"]}\n')
-            f.write(f'{slug}_CLIENT_ID={result["client_id"]}\n')
-            f.write(f'{slug}_CLIENT_SECRET={result["client_secret"]}\n')
+    from adsyslib.files import write_private
+
+    path = Path(output_file)
+    if path.is_symlink():
+        raise ValueError("Refusing to append credentials to a symlink")
+    lines = [path.read_text() if path.exists() else "", "\n# OAuth providers"]
+    for result in results:
+        if "error" in result:
+            continue
+        slug = result["app_slug"].upper().replace("-", "_")
+        if not re.fullmatch(r"[A-Z_][A-Z0-9_]*", slug):
+            raise ValueError("Application slug cannot be used as an environment variable")
+        for suffix, key in [("CLIENT_ID", "client_id"), ("CLIENT_SECRET", "client_secret")]:
+            value = str(result[key])
+            if any(char in value for char in "\r\n\x00"):
+                raise ValueError("Credential values must be single-line text")
+            lines.append(f"{slug}_{suffix}={shlex.quote(value)}")
+    write_private(output_file, "\n".join(lines) + "\n")
 
     logger.info(f"✓ Generated {output_file} with {len(results)} OAuth credentials")

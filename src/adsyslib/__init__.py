@@ -31,6 +31,7 @@ from adsyslib.core import (
     Shell,
     ShellConnectionError,
     ShellError,
+    ShellTimeoutError,
     run,
 )
 
@@ -57,6 +58,7 @@ __all__ = [
     "ShellProtocol",
     "AdsysError",
     "ShellError",
+    "ShellTimeoutError",
     "ShellConnectionError",
     # Logging
     "configure_logging",

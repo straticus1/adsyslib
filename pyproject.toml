@@ -44,7 +44,7 @@ dev = [
     "pytest>=7.0",
     "pytest-cov",
     "ruff",
-    "mypy",
+    "mypy<2",  # 2.x no longer type-checks the supported Python 3.9 target
     "types-PyYAML",
     "types-paramiko",
     "types-requests",
@@ -81,3 +81,6 @@ addopts = "-q"
 
 [project.scripts]
 adsys = "adsyslib.cli.main:app"
+
+[tool.setuptools.package-data]
+adsyslib = ["py.typed"]

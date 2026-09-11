@@ -2,6 +2,7 @@
 Patching collector — patch status and malware protection evidence.
 Maps to controls: SI-2, SI-3.
 """
+
 import logging
 from typing import Any, Optional
 

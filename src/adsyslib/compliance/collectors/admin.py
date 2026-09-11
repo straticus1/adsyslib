@@ -2,6 +2,7 @@
 Admin collector — privileged account and system hardening evidence.
 Maps to controls: AC-6, CM-6, CM-7.
 """
+
 import logging
 import re
 from typing import Any, Optional
@@ -42,13 +43,15 @@ def _privileged_accounts(ctx: ShellProtocol) -> list[dict[str, Any]]:
     for line in text.splitlines():
         parts = line.split(":")
         if len(parts) >= 4 and parts[2] == "0":
-            accounts.append({
-                "username": parts[0],
-                "uid": 0,
-                "gid": int(parts[3]) if parts[3].isdigit() else parts[3],
-                "home": parts[5] if len(parts) > 5 else "",
-                "shell": parts[6] if len(parts) > 6 else "",
-            })
+            accounts.append(
+                {
+                    "username": parts[0],
+                    "uid": 0,
+                    "gid": int(parts[3]) if parts[3].isdigit() else parts[3],
+                    "home": parts[5] if len(parts) > 5 else "",
+                    "shell": parts[6] if len(parts) > 6 else "",
+                }
+            )
     return accounts
 
 
@@ -64,9 +67,14 @@ def _sshd_hardening(ctx: ShellProtocol, path: str = "/etc/ssh/sshd_config") -> d
             settings[parts[0].lower()] = parts[1]
 
     keys = [
-        "permitrootlogin", "passwordauthentication", "x11forwarding",
-        "maxauthtries", "logingracetime", "permitemptypasswords",
-        "clientaliveinterval", "clientalivecountmax",
+        "permitrootlogin",
+        "passwordauthentication",
+        "x11forwarding",
+        "maxauthtries",
+        "logingracetime",
+        "permitemptypasswords",
+        "clientaliveinterval",
+        "clientalivecountmax",
     ]
     return {k: settings.get(k, "unknown") for k in keys}
 

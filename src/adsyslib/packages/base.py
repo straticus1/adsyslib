@@ -1,4 +1,5 @@
 import os
+import re
 from abc import ABC, abstractmethod
 from typing import Union
 
@@ -16,13 +17,14 @@ class PackageManager(ABC):
             return False
         # Check if sudo is available
         import shutil
+
         return shutil.which("sudo") is not None
 
     @abstractmethod
     def install(self, packages: Union[str, list[str]], update: bool = False) -> bool:
         """
         Install one or more packages.
-        
+
         Args:
             packages: Single package name or list of names.
             update: Whether to update package lists before installing.
@@ -45,6 +47,10 @@ class PackageManager(ABC):
         pass
 
     def _ensure_list(self, packages: Union[str, list[str]]) -> list[str]:
-        if isinstance(packages, str):
-            return [packages]
-        return packages
+        values = [packages] if isinstance(packages, str) else list(packages)
+        for value in values:
+            if not isinstance(value, str) or not re.fullmatch(
+                r"[A-Za-z0-9][A-Za-z0-9.+_:~=@%/-]*", value
+            ):
+                raise ValueError(f"Invalid package name: {value!r}")
+        return list(dict.fromkeys(values))

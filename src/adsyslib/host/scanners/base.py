@@ -3,6 +3,7 @@ ServiceScanner base class.
 
 Each scanner wraps a RemoteShell and implements scan() → ScanResult.
 """
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -38,6 +39,7 @@ class ServiceScanner:
     Base for all service scanners.
     Subclasses implement scan() and set service_name.
     """
+
     service_name: str = ""
 
     def __init__(self, shell: Any) -> None:

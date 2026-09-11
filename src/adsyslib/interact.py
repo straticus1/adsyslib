@@ -9,16 +9,23 @@ except ImportError:  # optional dependency — pip install 'adsyslib[interact]'
 
 logger = logging.getLogger(__name__)
 
+
 class InteractiveSession:
     """
     Wrapper around pexpect to automate interactive CLI tools.
     Supports "smart fill" where you define prompts and their responses.
     """
-    def __init__(self, command: str, args: Optional[list[str]] = None, timeout: int = 30, log_output: bool = True):
+
+    def __init__(
+        self,
+        command: str,
+        args: Optional[list[str]] = None,
+        timeout: int = 30,
+        log_output: bool = True,
+    ):
         if pexpect is None:
             raise ImportError(
-                "pexpect is required for InteractiveSession:\n"
-                "  pip install 'adsyslib[interact]'"
+                "pexpect is required for InteractiveSession:\n  pip install 'adsyslib[interact]'"
             )
         self.command = command
         self.args = args or []
@@ -30,14 +37,14 @@ class InteractiveSession:
         cmd_line = f"{self.command} {' '.join(self.args)}"
         logger.info(f"Starting interactive session: {cmd_line}")
         # Spawn with encoding to handle modern CLI tools
-        self.child = pexpect.spawn(self.command, self.args, encoding='utf-8', timeout=self.timeout)
+        self.child = pexpect.spawn(self.command, self.args, encoding="utf-8", timeout=self.timeout)
         if self.log_output:
             self.child.logfile_read = sys.stdout
 
     def expect_and_send(self, pattern: str, response: str, exact: bool = False) -> None:
         """
         Wait for a pattern and send a response.
-        
+
         Args:
             pattern: Regex or exact string to wait for
             response: String to send
@@ -45,13 +52,13 @@ class InteractiveSession:
         """
         if not self.child:
             raise RuntimeError("Session not started. Call start() first.")
-        
+
         try:
             if exact:
                 self.child.expect_exact(pattern)
             else:
                 self.child.expect(pattern)
-            
+
             logger.debug(f"Matched pattern '{pattern}', sending response.")
             self.child.sendline(response)
         except pexpect.TIMEOUT as e:
@@ -78,5 +85,5 @@ class InteractiveSession:
 
         for pattern, response in interactions:
             self.expect_and_send(pattern, response)
-        
+
         self.wait_for_completion()

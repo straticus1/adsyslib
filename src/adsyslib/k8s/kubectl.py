@@ -2,11 +2,13 @@
 Kubectl wrapper for managing Kubernetes resources.
 Provides high-level methods for common kubectl operations.
 """
+
 import json
 import logging
 from typing import Any, Optional
 
-from adsyslib.core import CommandResult, Shell
+from adsyslib.core import AdsysError, CommandResult, Shell
+from adsyslib.protocols import ShellProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,8 @@ class KubectlRunner:
         context: Optional[str] = None,
         namespace: Optional[str] = None,
         kubeconfig: Optional[str] = None,
+        shell: Optional[ShellProtocol] = None,
+        timeout: float = 60.0,
     ):
         """
         Initialize kubectl runner.
@@ -33,7 +37,10 @@ class KubectlRunner:
         self.context = context
         self.namespace = namespace
         self.kubeconfig = kubeconfig
-        self.shell = Shell()
+        if timeout <= 0:
+            raise ValueError("timeout must be positive")
+        self.timeout = timeout
+        self.shell = shell if shell is not None else Shell()
 
     def _build_base_cmd(self, extra_args: Optional[list[str]] = None) -> list[str]:
         """Build base kubectl command with context/namespace/kubeconfig."""
@@ -60,7 +67,7 @@ class KubectlRunner:
             check: Raise error on failure
         """
         cmd = self._build_base_cmd(args)
-        result = self.shell.run(cmd, check=check)
+        result = self.shell.run(cmd, check=check, timeout=self.timeout, log_output=False)
         return result.stdout
 
     def run_command_json(self, args: list[str], check: bool = True) -> Any:
@@ -71,7 +78,7 @@ class KubectlRunner:
         command failed (with check=False) or the output is not valid JSON.
         """
         cmd = self._build_base_cmd(args)
-        result = self.shell.run(cmd, check=check)
+        result = self.shell.run(cmd, check=check, timeout=self.timeout, log_output=False)
         if result.ok():
             try:
                 return json.loads(result.stdout)
@@ -157,9 +164,7 @@ class KubectlRunner:
             return self.run_command_json(args)
         return self.run_command(args)
 
-    def describe(
-        self, resource_type: str, name: str, namespace: Optional[str] = None
-    ) -> str:
+    def describe(self, resource_type: str, name: str, namespace: Optional[str] = None) -> str:
         """Describe a resource in detail."""
         args = ["describe", resource_type, name]
         if namespace:
@@ -227,7 +232,7 @@ class KubectlRunner:
             args.extend(["-c", container])
         if follow:
             args.append("-f")
-        if tail:
+        if tail is not None:
             args.extend(["--tail", str(tail)])
         if previous:
             args.append("--previous")
@@ -298,8 +303,8 @@ class KubectlRunner:
         logger.info(f"Port forwarding {resource} {ports}")
 
         if background:
-            logger.warning(
-                "Background port-forward not fully implemented - use kubectl directly or manage process"
+            raise AdsysError(
+                "Background port-forward is unsupported; use background=False with an externally managed process"
             )
 
         return self.shell.run(cmd, check=False)
@@ -314,6 +319,8 @@ class KubectlRunner:
         namespace: Optional[str] = None,
     ) -> str:
         """Scale a deployment/replicaset/statefulset."""
+        if replicas < 0:
+            raise ValueError("replicas must be nonnegative")
         args = ["scale", resource_type, name, f"--replicas={replicas}"]
         if namespace:
             args.extend(["-n", namespace])
@@ -321,9 +328,7 @@ class KubectlRunner:
         logger.info(f"Scaling {resource_type}/{name} to {replicas} replicas")
         return self.run_command(args)
 
-    def rollout_status(
-        self, resource_type: str, name: str, namespace: Optional[str] = None
-    ) -> str:
+    def rollout_status(self, resource_type: str, name: str, namespace: Optional[str] = None) -> str:
         """Check rollout status of a deployment."""
         args = ["rollout", "status", resource_type, name]
         if namespace:
